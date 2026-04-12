@@ -12,8 +12,8 @@
       "dest": "/server.js"
     },
     {
-      "src": "/",
-      "dest": "/server.js"
+      "src": "/static/(.*)",
+      "dest": "/frontend/$1"
     },
     {
       "src": "/(.*)",
