@@ -15,5 +15,11 @@
       "src": "/(.*)",
       "dest": "/server.js"
     }
-  ]
+  ],
+  "env": {
+    "PORT": "3000",
+    "MONGODB_URI": "mongodb+srv://swaroopsankalp437_db_user:5cDIWIvz4T57jCAQ@codexnoir.t0qejku.mongodb.net/?appName=CodexNoir",
+    "JWT_SECRET": "Illunoirbokakey123",
+    "GEMINI_API_KEY": "AIzaSyCGWbN68oKOTfaqq2cy81QFnq9O5Y7BGXc"
+  }
 }
