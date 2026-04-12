@@ -9,9 +9,8 @@ const aiRoutes = require('./routes/ai');
 
 const app = express();
 
-// Determine frontend path
-const isVercel = process.env.VERCEL === '1';
-const frontendPath = isVercel ? path.join(__dirname, '../frontend') : path.join(__dirname, '../../frontend');
+// Frontend path - always one level up from backend
+const frontendPath = path.join(__dirname, '../frontend');
 
 app.use(cors({
   origin: true,
