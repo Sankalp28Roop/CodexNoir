@@ -3,7 +3,6 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const notesRoutes = require('./routes/notes');
 const aiRoutes = require('./routes/ai');
@@ -11,13 +10,17 @@ const aiRoutes = require('./routes/ai');
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
-connectDB();
+// Connect DB only if URI exists
+if (process.env.MONGODB_URI) {
+  const connectDB = require('./config/db');
+  connectDB();
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
