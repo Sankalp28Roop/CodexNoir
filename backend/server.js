@@ -9,6 +9,10 @@ const aiRoutes = require('./routes/ai');
 
 const app = express();
 
+// Determine frontend path
+const isVercel = process.env.VERCEL === '1';
+const frontendPath = isVercel ? path.join(__dirname, '../frontend') : path.join(__dirname, '../../frontend');
+
 app.use(cors({
   origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -26,10 +30,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/ai', aiRoutes);
 
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(frontendPath));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.use((err, req, res, next) => {
