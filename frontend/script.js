@@ -68,6 +68,12 @@ const elements = {
   closeAuth: document.querySelector('.close-auth'),
   appContainer: document.getElementById('appContainer'),
   newNoteBtn: document.getElementById('newNoteBtn'),
+  newNotebookBtn: document.getElementById('newNotebookBtn'),
+  notebooksList: document.getElementById('notebooksList'),
+  notebookModal: document.getElementById('notebookModal'),
+  notebookName: document.getElementById('notebookName'),
+  notebookDesc: document.getElementById('notebookDesc'),
+  notebookColor: document.getElementById('notebookColor'),
   searchInput: document.getElementById('searchInput'),
   notesList: document.getElementById('notesList'),
   emptyList: document.getElementById('emptyList'),
@@ -260,6 +266,32 @@ function updateTimerDisplay() {
     `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function toggleAdminPanel() {
+  document.getElementById('adminPanel').classList.remove('hidden');
+  document.getElementById('profilePanel').classList.add('hidden');
+  updateAdminStats();
+}
+
+function updateAdminStats() {
+  const notesCount = notes.length;
+  const notebooksCount = notebooks.length;
+  const usersCount = parseInt(localStorage.getItem('userCount') || '1');
+  
+  document.getElementById('adminTotalNotes').textContent = notesCount;
+  document.getElementById('adminTotalUsers').textContent = usersCount;
+  document.getElementById('adminTotalNotebooks').textContent = notebooksCount;
+  
+  // Show all notes in admin
+  const allNotesList = notes.map(n => `
+    <div class="admin-note-item">
+      <strong>${n.title || 'Untitled'}</strong>
+      <span>${new Date(n.updatedAt).toLocaleDateString()}</span>
+    </div>
+  `).join('');
+  
+  document.getElementById('adminNotesList').innerHTML = allNotesList || '<p>No notes</p>';
+}
+
 function playNotificationSound() {
   const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJOqsIeEeWJw无为');
   audio.play().catch(() => {});
@@ -345,6 +377,8 @@ function init() {
   checkLock();
   setupEventListeners();
   loadNotes();
+  loadNotebooks();
+  renderNotebooks();
   updateGreeting();
   updateStats();
 }
@@ -419,6 +453,9 @@ function setupEventListeners() {
       document.getElementById('confirmModal').classList.add('hidden');
     };
   });
+  
+  document.getElementById('adminBtn').addEventListener('click', () => toggleAdminPanel());
+  document.getElementById('closeAdmin').addEventListener('click', () => document.getElementById('adminPanel').classList.add('hidden'));
   elements.closeProfile.addEventListener('click', toggleProfile);
   elements.homeSearchInput.addEventListener('input', handleHomeSearch);
   
@@ -448,6 +485,11 @@ function setupEventListeners() {
   
   elements.searchInput.addEventListener('input', renderNotesList);
   elements.newNoteBtn.addEventListener('click', () => showCreateSheet());
+  elements.newNotebookBtn.addEventListener('click', () => createNotebook());
+  document.getElementById('saveNotebook').addEventListener('click', () => saveNewNotebook());
+  document.getElementById('closeNotebookModal').addEventListener('click', () => {
+    elements.notebookModal.classList.add('hidden');
+  });
   elements.floatingNewNote.addEventListener('click', () => showCreateSheet());
   elements.closeCreateSheet.addEventListener('click', hideCreateSheet);
   elements.createOptions.forEach(btn => {
@@ -931,7 +973,13 @@ function getFilteredNotes() {
 }
 
 function renderNotesList() {
-  const filtered = getFilteredNotes();
+  let filtered = getFilteredNotes();
+  
+  // Filter by current notebook
+  if (currentNotebook) {
+    filtered = filtered.filter(n => n.notebookId === currentNotebook.id);
+  }
+  
   if (filtered.length === 0) {
     elements.notesList.innerHTML = '';
     elements.emptyList.classList.remove('hidden');
@@ -981,7 +1029,77 @@ function selectNote(noteId) {
   elements.completeTask.classList.toggle('hidden', !note.isTask);
   updateColorSelection();
   updateCharCount();
+  renderNotebooks();
   renderNotesList();
+}
+
+// Notebooks Management
+let notebooks = [];
+let currentNotebook = null;
+
+function loadNotebooks() {
+  notebooks = JSON.parse(localStorage.getItem('notebooks') || '[]');
+}
+
+function saveNotebooks() {
+  localStorage.setItem('notebooks', JSON.stringify(notebooks));
+}
+
+function renderNotebooks() {
+  loadNotebooks();
+  if (notebooks.length === 0) {
+    elements.notebooksList.innerHTML = '<p class="empty-text">No notebooks yet</p>';
+    return;
+  }
+  
+  elements.notebooksList.innerHTML = notebooks.map(nb => {
+    const noteCount = notes.filter(n => n.notebookId === nb.id).length;
+    return `
+      <div class="notebook-item ${currentNotebook && currentNotebook.id === nb.id ? 'active' : ''}" data-id="${nb.id}">
+        <span class="notebook-dot" style="background: ${nb.color}"></span>
+        <span class="notebook-name">${nb.name}</span>
+        <span class="notebook-count">${noteCount}</span>
+      </div>
+    `;
+  }).join('');
+  
+  document.querySelectorAll('.notebook-item').forEach(item => {
+    item.addEventListener('click', () => selectNotebook(item.dataset.id));
+  });
+}
+
+function selectNotebook(notebookId) {
+  currentNotebook = notebooks.find(nb => nb.id === notebookId) || null;
+  renderNotebooks();
+  renderNotesList();
+}
+
+function createNotebook() {
+  elements.notebookModal.classList.remove('hidden');
+}
+
+function saveNewNotebook() {
+  const name = elements.notebookName.value.trim();
+  if (!name) {
+    showToast('Please enter a notebook name');
+    return;
+  }
+  
+  const notebook = {
+    id: 'nb_' + Date.now(),
+    name: name,
+    description: elements.notebookDesc.value.trim(),
+    color: elements.notebookColor.value,
+    createdAt: new Date().toISOString()
+  };
+  
+  notebooks.push(notebook);
+  saveNotebooks();
+  elements.notebookName.value = '';
+  elements.notebookDesc.value = '';
+  elements.notebookModal.classList.add('hidden');
+  showToast('Notebook created!');
+  renderNotebooks();
 }
 
 function createNewNote(intent = 'note') {
@@ -1003,6 +1121,7 @@ function createNewNote(intent = 'note') {
     pinned: false,
     isTask: t.isTask || false,
     intent: intent,
+    notebookId: currentNotebook ? currentNotebook.id : null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };

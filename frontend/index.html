@@ -194,6 +194,10 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 New Note
               </button>
+              <button id="newNotebookBtn" class="new-notebook-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                New Notebook
+              </button>
             </div>
             <div class="intent-selector">
               <button class="intent-btn active" data-intent="all">All</button>
@@ -208,6 +212,13 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               <input type="text" id="searchInput" placeholder="Search notes...">
             </div>
+            
+            <!-- Notebooks Section -->
+            <div class="notebooks-section" id="notebooksSection">
+              <h4 class="section-title">📚 Notebooks</h4>
+              <div class="notebooks-list" id="notebooksList"></div>
+            </div>
+            
             <div class="notes-list" id="notesList"></div>
             <div class="empty-list hidden" id="emptyList">
               <p>No Notes</p>
@@ -390,6 +401,59 @@
           <button class="sheet-close" id="closeCreateSheet">Cancel</button>
         </div>
       </div>
+      
+      <!-- CREATE NOTEBOOK MODAL -->
+      <div id="notebookModal" class="modal-overlay hidden">
+        <div class="modal-box">
+          <h3>Create Notebook</h3>
+          <input type="text" id="notebookName" class="form-input" placeholder="Notebook name (e.g., Semester 1)">
+          <input type="text" id="notebookDesc" class="form-input" placeholder="Description (optional)">
+          <select id="notebookColor" class="form-select">
+            <option value="#6366F1">🟦 Blue</option>
+            <option value="#22C55E">🟩 Green</option>
+            <option value="#F59E0B">🟨 Amber</option>
+            <option value="#EF4444">🟥 Red</option>
+            <option value="#8B5CF6">🟪 Purple</option>
+            <option value="#EC4899">🩷 Pink</option>
+          </select>
+          <div class="modal-actions">
+            <button id="saveNotebook" class="btn btn-primary">Create</button>
+            <button id="closeNotebookModal" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+          <h3>Create New</h3>
+          <div class="create-options">
+            <button class="create-option" data-intent="note">
+              <span class="option-icon">✍️</span>
+              <span class="option-label">Text Note</span>
+            </button>
+            <button class="create-option" data-intent="idea">
+              <span class="option-icon">💡</span>
+              <span class="option-label">Idea</span>
+            </button>
+            <button class="create-option" data-intent="task">
+              <span class="option-icon">✅</span>
+              <span class="option-label">Task</span>
+            </button>
+            <button class="create-option" data-intent="study">
+              <span class="option-icon">📚</span>
+              <span class="option-label">Study</span>
+            </button>
+            <button class="create-option" data-intent="thought">
+              <span class="option-icon">💭</span>
+              <span class="option-label">Journal</span>
+            </button>
+            <button class="create-option" data-intent="goal">
+              <span class="option-icon">🎯</span>
+              <span class="option-label">Goal</span>
+            </button>
+          </div>
+          <button class="sheet-close" id="closeCreateSheet">Cancel</button>
+        </div>
+      </div>
 
       <!-- FLOATING ACTION BUTTON -->
       <button id="floatingNewNote" class="floating-btn">+</button>
@@ -445,6 +509,9 @@
         <div class="profile-options">
           <button class="profile-option" id="resetAppBtn">
             <span>🔄</span> Reset App
+          </button>
+          <button class="profile-option" id="adminBtn">
+            <span>👑</span> Admin Panel
           </button>
           <button class="profile-option" id="settingsBtn">
             <span>⚙️</span> Settings
@@ -579,6 +646,38 @@
         <input type="password" id="lockPin" class="form-input" placeholder="Enter PIN">
         <button id="setLock" class="btn btn-primary">Set PIN</button>
         <button id="unlockApp" class="btn btn-secondary hidden">Unlock</button>
+      </div>
+    </div>
+    
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>👑 Admin Dashboard</h3>
+        <button id="closeAdmin" class="icon-btn">&times;</button>
+      </div>
+      <div class="admin-stats">
+        <div class="admin-stat">
+          <span class="stat-number" id="adminTotalNotes">0</span>
+          <span class="stat-label">Total Notes</span>
+        </div>
+        <div class="admin-stat">
+          <span class="stat-number" id="adminTotalUsers">0</span>
+          <span class="stat-label">Total Users</span>
+        </div>
+        <div class="admin-stat">
+          <span class="stat-number" id="adminTotalNotebooks">0</span>
+          <span class="stat-label">Notebooks</span>
+        </div>
+      </div>
+      <div class="admin-section">
+        <h4>Recent Activity</h4>
+        <div class="activity-log" id="activityLog">
+          <p>No recent activity</p>
+        </div>
+      </div>
+      <div class="admin-section">
+        <h4>All Notes</h4>
+        <div class="admin-notes-list" id="adminNotesList"></div>
       </div>
     </div>
   </div>
