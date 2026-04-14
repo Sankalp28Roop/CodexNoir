@@ -292,6 +292,211 @@ function updateAdminStats() {
   document.getElementById('adminNotesList').innerHTML = allNotesList || '<p>No notes</p>';
 }
 
+// Notifications
+let notifications = [];
+
+function addNotification(message, type = 'info') {
+  const notification = {
+    id: 'notif_' + Date.now(),
+    message,
+    type,
+    read: false,
+    createdAt: new Date().toISOString()
+  };
+  notifications.unshift(notification);
+  if (notifications.length > 20) notifications.pop();
+  localStorage.setItem('notifications', JSON.stringify(notifications));
+  showToast(message);
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notificationsList');
+  if (notifications.length === 0) {
+    list.innerHTML = '<p>No notifications</p>';
+    return;
+  }
+  list.innerHTML = notifications.map(n => `
+    <div class="notification-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
+      <span>${n.type === 'share' ? '📤' : n.type === 'comment' ? '💬' : 'ℹ️'}</span>
+      <span>${n.message}</span>
+    </div>
+  `).join('');
+  
+  document.querySelectorAll('.notification-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const notif = notifications.find(n => n.id === item.dataset.id);
+      if (notif) notif.read = true;
+      item.classList.remove('unread');
+      localStorage.setItem('notifications', JSON.stringify(notifications));
+    });
+  });
+}
+
+// Sharing
+function showShareModal() {
+  if (!activeNote) {
+    showToast('Open a note first');
+    return;
+  }
+  document.getElementById('shareModal').classList.remove('hidden');
+}
+
+function shareNote() {
+  const email = document.getElementById('shareEmail').value.trim();
+  const role = document.getElementById('shareRole').value;
+  if (!email) {
+    showToast('Enter email address');
+    return;
+  }
+  addNotification(`Note shared with ${email} (${role})`, 'share');
+  document.getElementById('shareModal').classList.add('hidden');
+  document.getElementById('shareEmail').value = '';
+  showToast('Invitation sent!');
+}
+
+// Comments
+let comments = [];
+
+function showCommentsPanel() {
+  if (!activeNote) {
+    showToast('Open a note first');
+    return;
+  }
+  document.getElementById('commentsPanel').classList.remove('hidden');
+  renderComments();
+}
+
+function renderComments() {
+  const noteComments = comments.filter(c => c.noteId === activeNote._id);
+  const list = document.getElementById('commentsList');
+  if (noteComments.length === 0) {
+    list.innerHTML = '<p>No comments yet</p>';
+    return;
+  }
+  list.innerHTML = noteComments.map(c => `
+    <div class="comment-item">
+      <span class="comment-author">${c.author}</span>
+      <p class="comment-text">${c.text}</p>
+      <span class="comment-time">${new Date(c.createdAt).toLocaleString()}</span>
+    </div>
+  `).join('');
+}
+
+function addComment() {
+  const text = document.getElementById('newComment').value.trim();
+  if (!text || !activeNote) return;
+  
+  comments.push({
+    id: 'comment_' + Date.now(),
+    noteId: activeNote._id,
+    text,
+    author: 'You',
+    createdAt: new Date().toISOString()
+  });
+  localStorage.setItem('comments', JSON.stringify(comments));
+  document.getElementById('newComment').value = '';
+  addNotification('New comment added', 'comment');
+  renderComments();
+}
+
+// Advanced Search
+function toggleSearchFilters() {
+  document.getElementById('searchFilters').classList.toggle('hidden');
+  populateFilterOptions();
+}
+
+function populateFilterOptions() {
+  const tags = JSON.parse(localStorage.getItem('tags') || '[]');
+  const tagSelect = document.getElementById('filterTag');
+  tagSelect.innerHTML = '<option value="">All Tags</option>' + 
+    tags.map(t => `<option value="${t}">${t}</option>`).join('');
+  
+  const nbSelect = document.getElementById('filterNotebook');
+  nbSelect.innerHTML = '<option value="">All Notebooks</option>' + 
+    notebooks.map(nb => `<option value="${nb.id}">${nb.name}</option>`).join('');
+}
+
+function applyFilters() {
+  const sortBy = document.getElementById('sortBy').value;
+  const filterTag = document.getElementById('filterTag').value;
+  const filterNotebook = document.getElementById('filterNotebook').value;
+  
+  let filtered = [...notes];
+  
+  if (filterTag) {
+    filtered = filtered.filter(n => n.tags && n.tags.includes(filterTag));
+  }
+  if (filterNotebook) {
+    filtered = filtered.filter(n => n.notebookId === filterNotebook);
+  }
+  
+  if (sortBy === 'title') {
+    filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  } else if (sortBy === 'created') {
+    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } else {
+    filtered.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  }
+  
+  elements.notesList.innerHTML = filtered.map(note => createNoteItem(note)).join('');
+  document.querySelectorAll('.note-item').forEach(item => {
+    item.addEventListener('click', () => selectNote(item.dataset.id));
+  });
+  showToast('Filters applied');
+}
+
+function clearFilters() {
+  document.getElementById('sortBy').value = 'date';
+  document.getElementById('filterTag').value = '';
+  document.getElementById('filterNotebook').value = '';
+  renderNotesList();
+  showToast('Filters cleared');
+}
+
+// Setup event listeners for new features
+document.getElementById('shareNote').addEventListener('click', () => showShareModal());
+document.getElementById('sendShare').addEventListener('click', () => shareNote());
+document.getElementById('closeShare').addEventListener('click', () => document.getElementById('shareModal').classList.add('hidden'));
+
+document.getElementById('addComment').addEventListener('click', () => showCommentsPanel());
+document.getElementById('postComment').addEventListener('click', () => addComment());
+document.getElementById('closeComments').addEventListener('click', () => document.getElementById('commentsPanel').classList.add('hidden'));
+
+document.getElementById('advancedSearchBtn').addEventListener('click', () => toggleSearchFilters());
+document.getElementById('applyFilters').addEventListener('click', () => applyFilters());
+document.getElementById('clearFilters').addEventListener('click', () => clearFilters());
+
+document.getElementById('closeShortcuts').addEventListener('click', () => document.getElementById('shortcutsModal').classList.add('hidden'));
+
+document.addEventListener('keydown', handleKeyboard);
+
+// Load notifications
+notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+comments = JSON.parse(localStorage.getItem('comments') || '[]');
+
+function handleKeyboard(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  
+  const key = e.key.toLowerCase();
+  if (e.ctrlKey || e.metaKey) {
+    if (key === 'b') { e.preventDefault(); applyFormat('bold'); }
+    else if (key === 'i') { e.preventDefault(); applyFormat('italic'); }
+    else if (key === 's') { e.preventDefault(); saveNote(); }
+  } else {
+    if (key === 'd') deleteActiveNote();
+    else if (key === 'p') togglePinNote();
+    else if (key === 'b') toggleBookmark();
+    else if (key === 'a') toggleAIPanel();
+    else if (key === 't') toggleTaskMode();
+    else if (key === '?') document.getElementById('shortcutsModal').classList.remove('hidden');
+    else if (key === 'Escape') {
+      document.getElementById('shortcutsModal').classList.add('hidden');
+      document.getElementById('shareModal').classList.add('hidden');
+      document.getElementById('commentsPanel').classList.add('hidden');
+    }
+  }
+}
+
 function playNotificationSound() {
   const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJOqsIeEeWJw无为');
   audio.play().catch(() => {});

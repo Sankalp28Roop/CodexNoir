@@ -212,6 +212,33 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               <input type="text" id="searchInput" placeholder="Search notes...">
             </div>
+            <button id="advancedSearchBtn" class="icon-btn" title="Advanced Search">⚙️</button>
+            
+            <!-- Advanced Search Panel -->
+            <div class="search-filters hidden" id="searchFilters">
+              <div class="filter-group">
+                <label>Sort by:</label>
+                <select id="sortBy">
+                  <option value="date">Date Modified</option>
+                  <option value="created">Date Created</option>
+                  <option value="title">Title A-Z</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Filter by tag:</label>
+                <select id="filterTag">
+                  <option value="">All Tags</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Filter by notebook:</label>
+                <select id="filterNotebook">
+                  <option value="">All Notebooks</option>
+                </select>
+              </div>
+              <button id="applyFilters" class="btn btn-primary">Apply</button>
+              <button id="clearFilters" class="btn btn-secondary">Clear</button>
+            </div>
             
             <!-- Notebooks Section -->
             <div class="notebooks-section" id="notebooksSection">
@@ -227,27 +254,27 @@
 
           <div class="note-view" id="noteView">
             <div class="note-editor-panel" id="editorPanel">
-              <div class="editor-toolbar">
+<div class="editor-toolbar">
                 <div class="toolbar-left">
-                  <button id="deleteNote" class="icon-btn" title="Delete">
+                  <button id="deleteNote" class="icon-btn" title="Delete (Del)" accesskey="d">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                   </button>
-                  <button id="pinNote" class="icon-btn" title="Pin">
+                  <button id="pinNote" class="icon-btn" title="Pin (P)" accesskey="p">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
                   </button>
-                  <button id="bookmarkNote" class="icon-btn" title="Bookmark">
+                  <button id="bookmarkNote" class="icon-btn" title="Bookmark (B)" accesskey="b">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                   </button>
-                  <button id="aiMenuBtn" class="icon-btn" title="AI Tools">
+                  <button id="aiMenuBtn" class="icon-btn" title="AI Tools (A)" accesskey="a">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path></svg>
                   </button>
-                  <button id="toggleTask" class="icon-btn" title="Task Mode">
+                  <button id="toggleTask" class="icon-btn" title="Task Mode (T)" accesskey="t">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                   </button>
                   <button id="completeTask" class="icon-btn hidden" title="Complete">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   </button>
-                  <button id="exportNote" class="icon-btn" title="Export">
+                  <button id="exportNote" class="icon-btn" title="Export (E)" accesskey="e">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   </button>
                   <button id="attachFile" class="icon-btn" title="Attach">
@@ -258,6 +285,12 @@
                   </button>
                   <button id="setReminder" class="icon-btn" title="Set Reminder">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                  </button>
+                  <button id="shareNote" class="icon-btn" title="Share Note" aria-label="Share note with others">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                  </button>
+                  <button id="addComment" class="icon-btn" title="Add Comment" aria-label="Add comment">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                   </button>
                 </div>
                 <div class="toolbar-right">
@@ -552,6 +585,68 @@
           <button class="export-option" data-format="txt">📃 Plain Text</button>
         </div>
         <button id="closeExport" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+    
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>📤 Share Note</h3>
+        <input type="text" id="shareEmail" class="form-input" placeholder="Enter email to share with">
+        <select id="shareRole" class="form-select">
+          <option value="view">👁️ View Only</option>
+          <option value="comment">💬 Can Comment</option>
+          <option value="edit">✏️ Can Edit</option>
+        </select>
+        <div class="modal-actions">
+          <button id="sendShare" class="btn btn-primary">Send Invite</button>
+          <button id="closeShare" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Comments Panel -->
+    <div id="commentsPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>💬 Comments</h3>
+        <button id="closeComments" class="icon-btn">&times;</button>
+      </div>
+      <div class="comments-list" id="commentsList">
+        <p>No comments yet</p>
+      </div>
+      <div class="comment-input">
+        <input type="text" id="newComment" placeholder="Add a comment...">
+        <button id="postComment" class="btn btn-primary">Post</button>
+      </div>
+    </div>
+    
+    <!-- Notifications Panel -->
+    <div id="notificationsPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>🔔 Notifications</h3>
+        <button id="closeNotifications" class="icon-btn">&times;</button>
+      </div>
+      <div class="notifications-list" id="notificationsList">
+        <p>No notifications</p>
+      </div>
+    </div>
+    
+    <!-- Keyboard Shortcuts Help -->
+    <div id="shortcutsModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="shortcuts-list">
+          <p><strong>Ctrl+B</strong> - Bold</p>
+          <p><strong>Ctrl+I</strong> - Italic</p>
+          <p><strong>Ctrl+S</strong> - Save</p>
+          <p><strong>Del</strong> - Delete note</p>
+          <p><strong>P</strong> - Pin note</p>
+          <p><strong>B</strong> - Bookmark</p>
+          <p><strong>A</strong> - AI tools</p>
+          <p><strong>T</strong> - Toggle task</p>
+          <p><strong>Esc</strong> - Close panel</p>
+        </div>
+        <button id="closeShortcuts" class="btn btn-secondary">Close</button>
       </div>
     </div>
     
