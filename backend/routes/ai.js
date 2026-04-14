@@ -142,4 +142,90 @@ router.post('/generate', async (req, res) => {
   }
 });
 
+// AI Writing Coach
+router.post('/coach', async (req, res) => {
+  try {
+    const { content } = req.body;
+    
+    if (!content || content.length < 50) {
+      return res.status(400).json({ message: 'Content too short (min 50 chars)' });
+    }
+
+    const prompt = `You are a writing coach. Analyze this text and provide:
+1. Grammar issues (if any)
+2. Readability score (1-10)
+3. Tone (formal/casual/academic)
+4. Suggestions for improvement
+5. Sentence variety feedback
+
+Text: ${content}`;
+    
+    const feedback = await generateContent(prompt);
+    res.json({ feedback });
+  } catch (error) {
+    console.error('Writing coach error:', error.message);
+    res.status(500).json({ message: 'Error analyzing text' });
+  }
+});
+
+// Generate Flashcards from notes
+router.post('/flashcards', async (req, res) => {
+  try {
+    const { content, title } = req.body;
+    
+    if (!content) {
+      return res.status(400).json({ message: 'Content required' });
+    }
+
+    const prompt = `Create 5-10 flashcards from this content. Output as JSON array with "front" and "back" fields.
+    
+Content: ${content}`;
+    
+    const result = await generateContent(prompt);
+    
+    // Parse JSON from result
+    let flashcards = [];
+    try {
+      const match = result.match(/\[[\s\S]*\]/);
+      if (match) {
+        flashcards = JSON.parse(match);
+      }
+    } catch (e) {
+      flashcards = result.split('\n').filter(l => l.trim()).map(l => ({
+        front: l.substring(0, 80),
+        back: 'See content'
+      }));
+    }
+    
+    res.json({ flashcards });
+  } catch (error) {
+    console.error('Flashcard error:', error.message);
+    res.status(500).json({ message: 'Error generating flashcards' });
+  }
+});
+
+// Daily Brief
+router.post('/daily-brief', async (req, res) => {
+  try {
+    const { notes, tasks } = req.body;
+    
+    const notes_context = notes.map(n => `- ${n.title}: ${n.content.substring(0, 100)}`).join('\n');
+    const tasks_context = tasks.filter(t => !t.isComplete).map(t => `- ${t.title}`).join('\n');
+    
+    const prompt = `Create a morning brief for the user. Include:
+1. Summary of recent notes
+2. Tasks due today
+3. Suggestions for the day
+
+Notes: ${notes_context || 'No notes'}
+Tasks: ${tasks_context || 'No pending tasks'}`;
+    
+    const brief = await generateContent(prompt);
+    res.json({ brief });
+  } catch (error) {
+    console.error('Daily brief error:', error.message);
+    res.status(500).json({ message: 'Error generating brief' });
+  }
+});
+
 module.exports = router;

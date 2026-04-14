@@ -199,4 +199,23 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Public note access (no auth needed)
+router.get('/public/:slug', async (req, res) => {
+  try {
+    const note = await Note.findOne({ publicLink: req.params.slug });
+    
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+
+    res.json({
+      title: note.title,
+      content: note.content,
+      updatedAt: note.updatedAt
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching note' });
+  }
+});
+
 module.exports = router;

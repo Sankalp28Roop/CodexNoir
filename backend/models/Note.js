@@ -62,6 +62,28 @@ const noteSchema = new mongoose.Schema({
     default: 'note',
     enum: ['note', 'idea', 'study', 'task', 'thought', 'goal']
   },
+  // New fields
+  notebookId: {
+    type: String,
+    default: null
+  },
+  publicLink: {
+    type: String,
+    default: null
+  },
+  sharedWith: [{
+    email: String,
+    role: { type: String, enum: ['view', 'comment', 'edit'], default: 'view' }
+  }],
+  comments: [{
+    text: String,
+    author: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  metadata: {
+    wordCount: { type: Number, default: 0 },
+    readTime: { type: Number, default: 0 }
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -74,6 +96,11 @@ const noteSchema = new mongoose.Schema({
 
 noteSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  // Auto-calculate word count
+  if (this.content) {
+    this.metadata.wordCount = this.content.split(/\s+/).filter(w => w).length;
+    this.metadata.readTime = Math.ceil(this.metadata.wordCount / 200);
+  }
   next();
 });
 

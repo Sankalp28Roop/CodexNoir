@@ -497,6 +497,304 @@ function handleKeyboard(e) {
   }
 }
 
+// ===== NEW FEATURES =====
+
+// Note Preview & Markdown
+let currentEditorTab = 'edit';
+
+function switchEditorTab(tab) {
+  currentEditorTab = tab;
+  document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  
+  document.getElementById('noteContent').classList.toggle('hidden', tab !== 'edit');
+  document.getElementById('notePreview').classList.toggle('hidden', tab !== 'preview');
+  document.getElementById('markdownView').classList.toggle('hidden', tab !== 'md');
+  
+  if (tab === 'preview') {
+    renderNotePreview();
+  } else if (tab === 'md') {
+    renderMarkdown();
+  }
+}
+
+function renderNotePreview() {
+  const content = elements.noteContent.value;
+  const preview = document.getElementById('notePreview');
+  preview.innerHTML = content
+    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*)\*/g, '<em>$1</em>')
+    .replace(/^- (.*$)/gm, '<li>$1</li>')
+    .replace(/\n/g, '<br>');
+}
+
+function renderMarkdown() {
+  const content = elements.noteContent.value;
+  const view = document.querySelector('#markdownView code');
+  view.textContent = content;
+}
+
+// Calendar View
+let currentDate = new Date();
+
+function renderCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  document.getElementById('currentMonth').textContent = 
+    new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  
+  let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => 
+    `<div style="font-size:0.7rem;color:var(--text-muted)">${d}</div>`
+  ).join('');
+  
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div></div>';
+  }
+  
+  const today = new Date();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const hasNotes = notes.some(n => n.updatedAt && n.updatedAt.startsWith(dateStr));
+    const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+    
+    html += `<div class="calendar-day ${isToday ? 'today' : ''} ${hasNotes ? 'has-notes' : ''}" data-date="${dateStr}">${day}</div>`;
+  }
+  
+  document.getElementById('calendarGrid').innerHTML = html;
+  
+  document.querySelectorAll('.calendar-day[data-date]').forEach(day => {
+    day.addEventListener('click', () => showNotesForDate(day.dataset.date));
+  });
+}
+
+function showNotesForDate(date) {
+  const dayNotes = notes.filter(n => n.updatedAt && n.updatedAt.startsWith(date));
+  document.getElementById('calendarNotes').innerHTML = dayNotes.length > 0 
+    ? dayNotes.map(n => `<div class="notification-item">${n.title}</div>`).join('')
+    : '<p>No notes for this date</p>';
+}
+
+// Time Travel
+function renderVersionHistory() {
+  if (!activeNote || !activeNote.history || activeNote.history.length === 0) {
+    document.getElementById('versionList').innerHTML = '<p>No version history</p>';
+    return;
+  }
+  
+  document.getElementById('versionList').innerHTML = activeNote.history.map((v, i) => `
+    <div class="version-item" data-index="${i}">
+      <div>Version ${activeNote.history.length - i}</div>
+      <div class="version-date">${new Date(v.savedAt).toLocaleString()}</div>
+    </div>
+  `).join('');
+  
+  document.querySelectorAll('.version-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const index = parseInt(item.dataset.index);
+      const version = activeNote.history[index];
+      if (confirm('Restore this version?')) {
+        elements.noteContent.value = version.content;
+        saveNote();
+        showToast('Version restored');
+      }
+    });
+  });
+}
+
+// Study Mode (Flashcards)
+let flashcards = [];
+let currentCard = 0;
+
+function generateFlashcards() {
+  if (!activeNote) return;
+  
+  const content = activeNote.content || '';
+  const lines = content.split('\n').filter(l => l.trim());
+  
+  flashcards = lines.map((line, i) => ({
+    front: line.replace(/^[#\-*] /, '').substring(0, 100),
+    back: `Card ${i + 1}`
+  }));
+  
+  if (flashcards.length === 0) {
+    flashcards = [{ front: 'No content for flashcards', back: 'Add content to your note' }];
+  }
+  
+  currentCard = 0;
+  showFlashcard();
+  showToast(`Generated ${flashcards.length} flashcards`);
+}
+
+function showFlashcard() {
+  if (flashcards.length === 0) return;
+  
+  document.getElementById('flashcardFront').textContent = flashcards[currentCard].front;
+  document.getElementById('flashcardBack').textContent = flashcards[currentCard].back;
+  document.getElementById('studyProgress').textContent = `${currentCard + 1}/${flashcards.length}`;
+}
+
+function flipCard() {
+  document.getElementById('flashcardBack').classList.toggle('hidden');
+}
+
+function nextCard() {
+  currentCard = (currentCard + 1) % flashcards.length;
+  document.getElementById('flashcardBack').classList.add('hidden');
+  showFlashcard();
+}
+
+// Daily Brief
+async function generateDailyBrief() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayNotes = notes.filter(n => n.updatedAt && n.updatedAt.startsWith(today));
+  const tasks = notes.filter(n => n.isTask && !n.isComplete);
+  
+  let brief = `
+    <div class="brief-section">
+      <h4>📝 Notes Today</h4>
+      <p>${todayNotes.length} notes created</p>
+    </div>
+    <div class="brief-section">
+      <h4>✅ Pending Tasks</h4>
+      <p>${tasks.length} tasks remaining</p>
+    </div>
+  `;
+  
+  // AI summary if notes exist
+  if (todayNotes.length > 0 && document.getElementById('aiPanel')) {
+    brief += `<div class="brief-section"><h4>🤖 AI Insights</h4><p>Generating...</p></div>`;
+  }
+  
+  document.getElementById('briefContent').innerHTML = brief;
+}
+
+// Knowledge Graph
+function renderKnowledgeGraph() {
+  const container = document.getElementById('graphContainer');
+  
+  // Find linked notes
+  const linkedNotes = notes.filter(n => n.linkedNotes && n.linkedNotes.length > 0);
+  
+  if (linkedNotes.length === 0) {
+    container.innerHTML = '<p>Link notes to see the knowledge graph</p>';
+    return;
+  }
+  
+  // Simple visualization
+  let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  linkedNotes.forEach(note => {
+    html += `<div style="padding:8px;background:var(--bg-primary);border-radius:8px;">
+      <strong>${note.title}</strong>
+      <div style="font-size:0.75rem;color:var(--text-muted)">→ ${note.linkedNotes.length} linked</div>
+    </div>`;
+  });
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
+// Public Sharing
+function generatePublicLink() {
+  if (!activeNote) {
+    showToast('Open a note first');
+    return;
+  }
+  
+  const slug = activeNote._id + '-' + Date.now();
+  const publicUrl = `${window.location.origin}/public/${slug}`;
+  document.getElementById('publicLink').value = publicUrl;
+  
+  // Save public link to note
+  activeNote.publicLink = slug;
+  saveNote();
+  showToast('Public link generated');
+}
+
+function copyPublicLink() {
+  const link = document.getElementById('publicLink').value;
+  navigator.clipboard.writeText(link);
+  showToast('Copied to clipboard!');
+}
+
+// Initialize all new features
+document.querySelectorAll('.editor-tab').forEach(tab => {
+  tab.addEventListener('click', () => switchEditorTab(tab.dataset.tab));
+});
+
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  renderCalendar();
+});
+
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  renderCalendar();
+});
+
+document.getElementById('calendarBtn').addEventListener('click', () => {
+  document.getElementById('calendarPanel').classList.remove('hidden');
+  renderCalendar();
+});
+
+document.getElementById('closeCalendar').addEventListener('click', () => {
+  document.getElementById('calendarPanel').classList.add('hidden');
+});
+
+document.getElementById('timeTravelBtn').addEventListener('click', () => {
+  document.getElementById('timeTravelPanel').classList.remove('hidden');
+  renderVersionHistory();
+});
+
+document.getElementById('closeTimeTravel').addEventListener('click', () => {
+  document.getElementById('timeTravelPanel').classList.add('hidden');
+});
+
+document.getElementById('studyBtn').addEventListener('click', () => {
+  document.getElementById('studyPanel').classList.remove('hidden');
+});
+
+document.getElementById('closeStudy').addEventListener('click', () => {
+  document.getElementById('studyPanel').classList.add('hidden');
+});
+
+document.getElementById('flipCard').addEventListener('click', flipCard);
+document.getElementById('nextCard').addEventListener('click', nextCard);
+document.getElementById('generateCards').addEventListener('click', generateFlashcards);
+
+document.getElementById('dailyBriefBtn').addEventListener('click', () => {
+  document.getElementById('dailyBriefPanel').classList.remove('hidden');
+  generateDailyBrief();
+});
+
+document.getElementById('closeDailyBrief').addEventListener('click', () => {
+  document.getElementById('dailyBriefPanel').classList.add('hidden');
+});
+
+document.getElementById('sharePublicBtn').addEventListener('click', () => {
+  document.getElementById('publicShareModal').classList.remove('hidden');
+});
+
+document.getElementById('generatePublicLink').addEventListener('click', generatePublicLink);
+document.getElementById('copyPublicLink').addEventListener('click', copyPublicLink);
+document.getElementById('closePublicShare').addEventListener('click', () => {
+  document.getElementById('publicShareModal').classList.add('hidden');
+});
+
+document.getElementById('graphBtn').addEventListener('click', () => {
+  document.getElementById('graphPanel').classList.remove('hidden');
+  renderKnowledgeGraph();
+});
+
+document.getElementById('closeGraph').addEventListener('click', () => {
+  document.getElementById('graphPanel').classList.add('hidden');
+});
+
 function playNotificationSound() {
   const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJOqsIeEeWJw无为');
   audio.play().catch(() => {});

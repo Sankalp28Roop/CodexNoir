@@ -2069,3 +2069,211 @@ body {
     display: none;
   }
 }
+
+/* Editor Tabs */
+.editor-tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-tab {
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: var(--transition);
+}
+
+.editor-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.editor-tab:hover {
+  color: var(--text-primary);
+}
+
+/* Note Preview & Markdown */
+.note-preview, .markdown-view {
+  flex: 1;
+  padding: var(--space-4);
+  overflow-y: auto;
+  line-height: 1.7;
+}
+
+.note-preview.hidden, .markdown-view.hidden {
+  display: none;
+}
+
+.markdown-view pre {
+  background: var(--bg-tertiary);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.markdown-view code {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.875rem;
+}
+
+/* Calendar */
+.calendar-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.calendar-day {
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.calendar-day:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.calendar-day.today {
+  border: 2px solid var(--primary);
+}
+
+.calendar-day.has-notes {
+  background: var(--secondary);
+  color: white;
+}
+
+.calendar-notes {
+  margin-top: var(--space-3);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Time Travel */
+.version-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.version-item {
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.version-item:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.version-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.version-item:hover .version-date {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Study Mode */
+.study-progress {
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+
+.flashcard {
+  min-height: 200px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.25rem;
+  margin-bottom: var(--space-4);
+  cursor: pointer;
+}
+
+.flashcard-front, .flashcard-back {
+  width: 100%;
+}
+
+.study-controls {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+/* Daily Brief */
+.brief-content {
+  padding: var(--space-3);
+}
+
+.brief-section {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.brief-section h4 {
+  color: var(--primary);
+  margin-bottom: var(--space-2);
+}
+
+/* Public Share */
+#publicLink {
+  word-break: break-all;
+}
+
+/* Knowledge Graph */
+.graph-container {
+  min-height: 300px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Code Syntax Highlighting */
+pre code {
+  color: #abb2bf;
+  background: #282c34;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+/* Focus Mode */
+body.focus-mode .navbar,
+body.focus-mode .sidebar,
+body.focus-mode .ai-panel,
+body.focus-mode .floating-btn {
+  display: none !important;
+}
+
+body.focus-mode .note-view {
+  max-width: 800px;
+  margin: 0 auto;
+}
