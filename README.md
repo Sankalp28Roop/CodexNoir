@@ -1,46 +1,67 @@
 # CodexNoir - Your Second Brain
 
-A modern, AI-powered notes app with intent-based note taking, gamification, and productivity features.
+A modern, AI-powered notes app with notebooks, collaboration, gamification, and advanced productivity features.
 
-![CodexNoir](https://img.shields.io/badge/CodexNoir-v1.0-brightgreen)
+![CodexNoir](https://img.shields.io/badge/CodexNoir-v2.0-brightgreen)
 ![Status](https://img.shields.io/badge/status-active-blue)
 
+## 🚀 Live Demo
+
+Deploy on Vercel: https://codexnoir.vercel.app
+
+---
+
 ## Features
+
+### 📚 Notebooks & Collections
+- Create unlimited notebooks (e.g., "Semester 1", "JavaScript Notes")
+- Color-coded notebooks
+- View notes by notebook
+- Notebook stats (note count)
 
 ### 🎯 Core Features
 - 📝 Rich text editor with formatting (bold, italic, headings, lists, checkboxes)
 - 📚 4 personalized dashboards:
-  - **Student** - Study notes, research, flashcards
-  - **Professional** - Work tasks, goals, agenda
-  - **Creator** - Ideas, content, media planning
-  - **Personal** - Journal, thoughts, memories
-- 🔍 Real-time search across all notes
+  - **Student** - Study notes, research
+  - **Professional** - Work tasks, goals
+  - **Creator** - Ideas, content
+  - **Personal** - Journal, thoughts
+- 🔍 Advanced search with filters:
+  - Sort by date/title/created
+  - Filter by tags/notebooks
 - 📤 Export notes (Markdown, PDF, Text)
 - 🔄 Auto-save with status indicator
 - 🌙 Light/Dark theme toggle
 
 ### 🛠️ Editor Tools
-- 🗑️ Delete note
-- 📌 Pin important notes
-- 🔖 Bookmark notes
+- 🗑️ Delete note (Del key)
+- 📌 Pin note (P key)
+- 🔖 Bookmark note (B key)
 - 🏷️ Add custom tags
 - ⏰ Set reminders/schedules
-- 📎 Attach files and images
-- ✅ Task/checkbox mode
+- 📎 Attach files
+- ✅ Task/checkbox mode (T key)
+- ✨ AI tools panel (A key)
 
-### 🧠 AI Features
-- Summarize long notes
-- Auto-generate smart tags
-- Rewrite/proofread content
-- Generate Blog posts
-- Generate Tweets
-- Generate LinkedIn posts
-- Chat with your notes (Ask anything)
+### 🧠 AI Features (Gemini API)
+- Summarize notes
+- Smart tags suggestions
+- Rewrite/proofread
+- Generate Blog/Tweet/LinkedIn posts
+- Chat with your notes
+
+### 👥 Collaboration
+- Share notes via email
+- Role-based access:
+  - 👁️ View Only
+  - 💬 Can Comment
+  - ✏️ Can Edit
+- Comments on notes
 
 ### 🎮 Gamification
-- ⭐ XP points system (earn for actions)
-- 🔥 Daily writing streaks
-- 🏆 8 unlockable badges:
+- ⭐ XP points system
+- 🔥 Daily streaks
+- 🏆 9 Badges:
   - 📝 First Note
   - ✍️ 10 Notes
   - 📚 100 Notes
@@ -49,176 +70,161 @@ A modern, AI-powered notes app with intent-based note taking, gamification, and 
   - 🎯 Task Master
   - 🔥 7 Day Streak
   - ⭐ XP Collector
-- 📊 Stats dashboard (notes count, words, streak, XP)
+  - 👑 Admin
+- 📊 Stats dashboard
 
 ### ⏱️ Productivity
-- ⏱️ Pomodoro timer (25/5 min sessions)
-- Writing goals tracking
+- ⏱️ Pomodoro timer (25/5 min)
+- Writing goals
+- Notes templates
 
-### 🔐 Security
-- 🔐 Lock app with PIN code
+### 🔐 Security & Admin
+- 🔐 Lock app with PIN
+- 👑 Admin dashboard
+- View all notes/users
+- Activity logs
+
+### 🔔 Notifications
+- Share notifications
+- Comment notifications
+- Activity alerts
+
+### ♿ Accessibility
+- Keyboard shortcuts
+- Focus indicators
+- ARIA labels
+- Tab navigation
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+B` | Bold |
+| `Ctrl+I` | Italic |
+| `Ctrl+S` | Save |
+| `Del` | Delete note |
+| `P` | Pin note |
+| `B` | Bookmark |
+| `A` | AI tools |
+| `T` | Task mode |
+| `?` | Show shortcuts |
+| `Esc` | Close panel |
+
+---
 
 ## Tech Stack
 
 - **Frontend**: HTML, CSS, Vanilla JavaScript
 - **Backend**: Node.js, Express.js
-- **Database**: MongoDB
+- **Database**: MongoDB (Atlas)
 - **AI**: Google Gemini API
+- **Deployment**: Vercel
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js (v14+)
-- MongoDB (local or Atlas)
+- MongoDB Atlas account
 - Google Gemini API key
 
-### Installation
+### Local Development
 
-1. **Clone the repository**
-   ```bash
-   cd Notes
+```bash
+# Clone
+git clone https://github.com/Sankalp28Roop/CodexNoir.git
+cd CodexNoir
+
+# Install
+cd backend && npm install
+
+# Run
+node server.js
+```
+
+### Vercel Deployment
+
+1. Import GitHub repo on Vercel
+2. Set Root Directory: `backend`
+3. Add Environment Variables:
    ```
-
-2. **Install backend dependencies**
-   ```bash
-   cd backend
-   npm install
+   MONGODB_URI=your-mongodb-atlas-uri
+   JWT_SECRET=your-secret
+   GEMINI_API_KEY=your-gemini-key
+   PORT=3000
    ```
+4. Deploy!
 
-3. **Configure environment**
-   - Copy `.env.example` to `.env`
-   - Add your MongoDB URI
-   - Add your Gemini API key
-
-4. **Start the servers**
-
-   Option A - Run both (frontend + backend):
-   ```bash
-   cd backend
-   node server.js
-   ```
-   App runs on http://localhost:3000
-
-   Option B - Run separately:
-   ```bash
-   # Terminal 1 - Backend
-   cd backend
-   node server.js
-
-   # Terminal 2 - Frontend
-   cd frontend
-   python3 -m http.server 8080
-   ```
-
-5. **Open in browser**
-   ```
-   http://localhost:3000
-   ```
+---
 
 ## Project Structure
 
 ```
-Notes/
+CodexNoir/
 ├── README.md
+├── .gitignore
 ├── backend/
-│   ├── config/
-│   │   └── db.js          # MongoDB connection
-│   ├── middleware/
-│   │   └── authMiddleware.js
-│   ├── models/
-│   │   ├── Note.js       # Note schema
-│   │   └── User.js       # User schema
-│   ├── routes/
-│   │   ├── auth.js      # Authentication
-│   │   ├── notes.js     # CRUD operations
-│   │   └── ai.js        # AI endpoints
-│   ├── server.js        # Main server
-│   ├── package.json
-│   └── .env            # Environment variables
+│   ├── config/db.js
+│   ├── middleware/authMiddleware.js
+│   ├── models/Note.js, User.js
+│   ├── routes/auth.js, notes.js, ai.js
+│   ├── server.js
+│   ├── vercel.json
+│   └── .env.example
 └── frontend/
-    ├── index.html       # Main HTML
-    ├── style.css       # All styles
-    └── script.js      # All JavaScript
+    ├── index.html
+    ├── style.css
+    └── script.js
 ```
 
-## Usage
-
-### Onboarding
-1. Select your use case (Student/Professional/Creator/Personal)
-2. Click "Get Started"
-3. Your dashboard will be personalized
-
-### Creating Notes
-1. Click + button (top nav or floating)
-2. Choose note type:
-   - **Text Note** - Basic note
-   - **Idea** - Problem/Solution format
-   - **Task** - Checklist format
-   - **Study** - Key concepts template
-   - **Thought** - Journal format
-   - **Goal** - Goal planning
-
-### Using AI
-1. Open any note
-2. Click ✨ AI button in toolbar
-3. Choose tool:
-   - Summarize - Get summary
-   - Smart Tag - Auto-tag
-   - Rewrite - Improve writing
-   - Generate - Create content
-
-### Productivity Features
-1. **Pomodoro**: Profile > Focus Timer
-2. **Stats**: Profile > Your Stats
-3. **Lock App**: Profile > Lock App
-
-## Keyboard Shortcuts
-
-- `Ctrl+B` - Bold text
-- `Ctrl+I` - Italic text
+---
 
 ## API Endpoints
 
 ### Auth
-- `POST /api/auth/register` - Register user
-- `POST /api/auth/login` - Login user
+- `POST /api/auth/register`
+- `POST /api/auth/login`
 
 ### Notes
-- `GET /api/notes` - Get all notes
-- `POST /api/notes` - Create note
-- `PUT /api/notes/:id` - Update note
-- `DELETE /api/notes/:id` - Delete note
+- `GET/POST /api/notes`
+- `PUT/DELETE /api/notes/:id`
 
 ### AI
-- `POST /api/ai/summarize` - Summarize text
-- `POST /api/ai/smart-tag` - Generate tags
-- `POST /api/ai/rewrite` - Rewrite text
-- `POST /api/ai/chat` - Chat with AI
-- `POST /api/ai/generate` - Generate content
+- `POST /api/ai/summarize`
+- `POST /api/ai/smart-tag`
+- `POST /api/ai/rewrite`
+- `POST /api/ai/chat`
+- `POST /api/ai/generate`
+
+---
 
 ## Environment Variables
 
 ```env
 PORT=3000
-MONGODB_URI=mongodb://localhost:27017/codexnoir
-JWT_SECRET=your-secret-key
-GEMINI_API_KEY=your-gemini-api-key
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=your-secret
+GEMINI_API_KEY=your-key
 ```
+
+---
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+1. Fork the repo
+2. Create feature branch
+3. Commit and push
+4. Open PR
+
+---
 
 ## License
 
-MIT License - feel free to use!
+MIT License
 
 ---
 
 Made with ❤️ by **Sankalp Devloper**
-
----
