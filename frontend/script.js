@@ -655,21 +655,19 @@ async function generateDailyBrief() {
   const todayNotes = notes.filter(n => n.updatedAt && n.updatedAt.startsWith(today));
   const tasks = notes.filter(n => n.isTask && !n.isComplete);
   
+  // Simple stats-based brief (avoid AI errors)
   let brief = `
     <div class="brief-section">
       <h4>📝 Notes Today</h4>
       <p>${todayNotes.length} notes created</p>
+      ${todayNotes.length > 0 ? `<ul>${todayNotes.slice(0,3).map(n => `<li>${n.title}</li>`).join('')}</ul>` : ''}
     </div>
     <div class="brief-section">
       <h4>✅ Pending Tasks</h4>
       <p>${tasks.length} tasks remaining</p>
+      ${tasks.length > 0 ? `<ul>${tasks.slice(0,3).map(t => `<li>${t.title}</li>`).join('')}</ul>` : ''}
     </div>
   `;
-  
-  // AI summary if notes exist
-  if (todayNotes.length > 0 && document.getElementById('aiPanel')) {
-    brief += `<div class="brief-section"><h4>🤖 AI Insights</h4><p>Generating...</p></div>`;
-  }
   
   document.getElementById('briefContent').innerHTML = brief;
 }
