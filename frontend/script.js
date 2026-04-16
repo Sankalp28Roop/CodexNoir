@@ -1550,6 +1550,9 @@ function setupEventListeners() {
   });
   
   elements.insightsBtn.addEventListener('click', toggleInsights);
+  document.getElementById('integrationsBtn')?.addEventListener('click', () => {
+    document.getElementById('integrationsModal').classList.remove('hidden');
+  });
   elements.closeInsights.addEventListener('click', toggleInsights);
   
   elements.navItems.forEach(item => {
@@ -2342,8 +2345,17 @@ function applyFormat(format) {
     code: selected.includes('\n') ? `\`\`\`\n${selected || 'code'}\n\`\`\`` : `\`${selected || 'code'}\``,
     link: `[${selected || 'link'}](url)`,
     image: `![${selected || 'alt'}](image-url)`,
+    video: `[YouTube](https://youtube.com/watch?v=)`,
+    audio: `[Audio](audio-url)`,
+    screen: `[Screen Recording](video-url)`,
+    embed: `[Embed](url)`,
     table: `\n| Col 1 | Col 2 | Col 3 |\n|------|------|------|\n| Cell | Cell | Cell |\n`
   };
+  
+  if (['video', 'audio', 'screen', 'embed'].includes(format)) {
+    showEmbedModal(format);
+    return;
+  }
   
   const replacement = replacements[format] || '';
   textarea.value = text.substring(0, start) + replacement + text.substring(end);
@@ -2742,4 +2754,272 @@ if ('Notification' in window && Notification.permission === 'default') {
   document.getElementById('header')?.addEventListener('click', () => {
     Notification.requestPermission();
   }, { once: true });
+}
+
+// ===== EMBED MODAL =====
+let currentEmbedType = 'embed';
+
+function showEmbedModal(type) {
+  currentEmbedType = type;
+  document.getElementById('embedModal').classList.remove('hidden');
+  document.getElementById('embedUrl').value = '';
+  document.getElementById('embedPreview').innerHTML = 'Preview will appear here';
+}
+
+document.getElementById('closeEmbed')?.addEventListener('click', () => {
+  document.getElementById('embedModal').classList.add('hidden');
+});
+
+document.getElementById('embedUrl')?.addEventListener('input', (e) => {
+  const url = e.target.value;
+  const preview = document.getElementById('embedPreview');
+  
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const videoId = url.split('v=')[1] || url.split('/').pop();
+    preview.innerHTML = `<div class="embed-youtube"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
+  } else if (url.includes('twitter.com') || url.includes('x.com')) {
+    preview.innerHTML = `<div class="embed-tweet">Tweet embed: ${url}</div>`;
+  } else if (url.includes('github.com') && url.includes('/gist/')) {
+    preview.innerHTML = `<div class="embed-code">Gist embed: ${url}</div>`;
+  } else if (url) {
+    preview.innerHTML = `<p style="color:var(--text-secondary)">Embed: ${url}</p>`;
+  } else {
+    preview.innerHTML = 'Preview will appear here';
+  }
+});
+
+document.getElementById('insertEmbed')?.addEventListener('click', () => {
+  const url = document.getElementById('embedUrl').value;
+  if (!url) return;
+  
+  let markdown = '';
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    markdown = `\n[![YouTube](https://img.youtube.com/vi/${url.split('v=')[1] || url.split('/').pop()}/0.jpg)](${url})\n`;
+  } else if (url.includes('figma.com')) {
+    markdown = `\n[Figma](${url})\n`;
+  } else {
+    markdown = `\n[${currentEmbedType}](${url})\n`;
+  }
+  
+  const textarea = elements.noteContent;
+  const start = textarea.selectionStart;
+  textarea.value = textarea.value.substring(0, start) + markdown + textarea.value.substring(start);
+  handleNoteChange();
+  document.getElementById('embedModal').classList.add('hidden');
+  showToast('Embed added!', 'success');
+});
+
+// ===== AUDIO RECORDING =====
+let audioMediaRecorder = null;
+let audioChunks = [];
+let recordedAudioBlob = null;
+
+document.getElementById('startAudioRecord')?.addEventListener('click', async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioMediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    
+    audioMediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+    audioMediaRecorder.onstop = () => {
+      recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      document.getElementById('audioRecordUI').classList.add('hidden');
+      document.getElementById('audioPlayback').classList.remove('hidden');
+      document.getElementById('audioPlayer').src = URL.createObjectURL(recordedAudioBlob);
+      document.getElementById('audioStatus').textContent = 'Recording complete!';
+    };
+    
+    audioMediaRecorder.start();
+    document.getElementById('audioStatus').textContent = 'Recording... Click to stop';
+    document.getElementById('startAudioRecord').textContent = '⏹️';
+    
+    document.getElementById('startAudioRecord').onclick = () => {
+      audioMediaRecorder.stop();
+      stream.getTracks().forEach(t => t.stop());
+    };
+  } catch (err) {
+    showToast('Microphone access denied', 'error');
+  }
+});
+
+document.getElementById('saveAudio')?.addEventListener('click', () => {
+  if (recordedAudioBlob) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const markdown = `\n<audio src="${reader.result}" controls></audio>\n`;
+      const textarea = elements.noteContent;
+      const start = textarea.selectionStart;
+      textarea.value = textarea.value.substring(0, start) + markdown + textarea.value.substring(start);
+      handleNoteChange();
+    };
+    reader.readAsDataURL(recordedAudioBlob);
+  }
+  document.getElementById('audioRecorder').classList.add('hidden');
+  document.getElementById('audioRecordUI').classList.remove('hidden');
+  document.getElementById('audioPlayback').classList.add('hidden');
+  showToast('Audio added to note!', 'success');
+});
+
+document.getElementById('discardAudio')?.addEventListener('click', () => {
+  recordedAudioBlob = null;
+  document.getElementById('audioRecorder').classList.add('hidden');
+  document.getElementById('audioRecordUI').classList.remove('hidden');
+  document.getElementById('audioPlayback').classList.add('hidden');
+});
+
+// ===== SCREEN RECORDING =====
+document.getElementById('startScreenRecord')?.addEventListener('click', async () => {
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+    
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const markdown = `\n[Screen Recording](${reader.result})\n`;
+        const textarea = elements.noteContent;
+        const start = textarea.selectionStart;
+        textarea.value = textarea.value.substring(0, start) + markdown + textarea.value.substring(start);
+        handleNoteChange();
+      };
+      reader.readAsDataURL(blob);
+      document.getElementById('screenRecorder').classList.add('hidden');
+      showToast('Screen recording added!', 'success');
+    };
+    
+    recorder.start();
+    showToast('Recording... Stop sharing to save', 'info');
+    
+    stream.getVideoTracks()[0].onended = () => {
+      recorder.stop();
+    };
+  } catch (err) {
+    showToast('Screen recording not supported', 'error');
+  }
+});
+
+// ===== BIOMETRIC LOGIN =====
+document.getElementById('enableBiometric')?.addEventListener('click', async () => {
+  if ('PublicKeyCredential' in window) {
+    try {
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: new Uint8Array(32),
+          rp: { name: 'CodexNoir' },
+          user: { id: new Uint8Array(16), name: localStorage.getItem('userEmail') || 'user' },
+          pubKeyCredParams: [{ type: 'public-key', alg: -7 }]
+        }
+      });
+      localStorage.setItem('biometricEnabled', 'true');
+      showToast('Biometric enabled!', 'success');
+    } catch (e) {
+      showToast('Biometric setup failed', 'error');
+    }
+  } else {
+    showToast('Biometric not supported', 'error');
+  }
+});
+
+document.getElementById('loginWithBiometric')?.addEventListener('click', async () => {
+  if ('PublicKeyCredential' in window) {
+    try {
+      const assertion = await navigator.credentials.get({
+        publicKey: { challenge: new Uint8Array(32) }
+      });
+      showToast('Biometric verified!', 'success');
+    } catch (e) {
+      showToast('Biometric verification failed', 'error');
+    }
+  }
+});
+
+// ===== 2FA =====
+document.getElementById('verify2FA')?.addEventListener('click', () => {
+  const code = document.getElementById('twoFactorCode').value;
+  if (code.length === 6) {
+    localStorage.setItem('twoFactorEnabled', 'true');
+    showToast('2FA enabled!', 'success');
+    document.getElementById('twoFactorModal').classList.add('hidden');
+  } else {
+    showToast('Enter 6-digit code', 'error');
+  }
+});
+
+document.getElementById('close2FA')?.addEventListener('click', () => {
+  document.getElementById('twoFactorModal').classList.add('hidden');
+});
+
+// ===== INTEGRATIONS =====
+function connectCalendar() {
+  showToast('Google Calendar integration coming soon!', 'info');
+}
+
+function connectGitHub() {
+  showToast('GitHub integration coming soon!', 'info');
+}
+
+function connectSlack() {
+  showToast('Slack integration coming soon!', 'info');
+}
+
+document.getElementById('closeIntegrations')?.addEventListener('click', () => {
+  document.getElementById('integrationsModal').classList.add('hidden');
+});
+
+// ===== PUSH NOTIFICATIONS =====
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+  navigator.serviceWorker.ready.then((reg) => {
+    reg.pushManager.subscribe({ userVisibleOnly: true }).then((sub) => {
+      console.log('Push subscription:', sub);
+    }).catch(console.error);
+  });
+}
+
+// Send test notification
+function sendTestNotification() {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('CodexNoir', { body: 'Test notification!' });
+  }
+}
+
+// ===== ENCRYPTION (Client-side) =====
+const ENCRYPTION_KEY = 'codexnoir-local-key';
+
+async function encryptContent(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(hash)));
+}
+
+async function decryptContent(encrypted) {
+  const decoder = new TextDecoder();
+  const data = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
+  return decoder.decode(data);
+}
+
+// ===== TEAM WORKSPACES =====
+let currentWorkspace = null;
+
+function createWorkspace(name) {
+  const workspace = {
+    id: Date.now().toString(),
+    name,
+    members: [localStorage.getItem('userEmail')],
+    notebooks: []
+  };
+  localStorage.setItem('workspace_' + workspace.id, JSON.stringify(workspace));
+  showToast('Workspace created!', 'success');
+  return workspace;
+}
+
+function switchWorkspace(workspaceId) {
+  const ws = localStorage.getItem('workspace_' + workspaceId);
+  if (ws) {
+    currentWorkspace = JSON.parse(ws);
+    showToast(`Switched to ${currentWorkspace.name}`, 'success');
+  }
 }

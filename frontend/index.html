@@ -248,6 +248,7 @@
           <button id="sharePublicBtn" class="icon-btn" title="Share Publicly">🌐</button>
           <button id="focusModeBtn" class="icon-btn" title="Focus Mode (F)">🎯</button>
           <button id="voiceNoteBtn" class="icon-btn" title="Voice Note (V)">🎤</button>
+          <button id="integrationsBtn" class="icon-btn" title="Integrations">🔗</button>
           <button id="themeToggle" class="icon-btn theme-btn" title="Toggle Light/Dark Mode">
             <span class="theme-icon">🌙</span>
           </button>
@@ -257,6 +258,9 @@
           </div>
           <div id="userSection" class="hidden">
             <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            <button id="settingsBtn" class="icon-btn" title="Settings">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
           </div>
         </div>
       </nav>
@@ -405,13 +409,18 @@
                 <button class="format-btn" data-format="bullet" title="List">•</button>
                 <button class="format-btn" data-format="checkbox" title="Checklist">☑</button>
                 <div class="format-divider"></div>
-<button class="format-btn" data-format="code" title="Code">&lt;/&gt;</button>
-                  <button class="format-btn" data-format="link" title="Link">🔗</button>
-                  <button class="format-btn" data-format="image" title="Image">🖼️</button>
-                  <button class="format-btn" data-format="table" title="Table">表格</button>
-                  <button class="format-btn" data-format="markdown" title="Markdown Preview">📄</button>
-                  <button class="format-btn" data-format="preview" title="Toggle Preview">👁️</button>
+                <button class="format-btn" data-format="code" title="Code">&lt;/&gt;</button>
+                <button class="format-btn" data-format="link" title="Link">🔗</button>
+                <button class="format-btn" data-format="image" title="Image">🖼️</button>
+                <button class="format-btn" data-format="video" title="YouTube Video">▶️</button>
+                <button class="format-btn" data-format="audio" title="Audio Recording">🎤</button>
+                <button class="format-btn" data-format="screen" title="Screen Record">🖥️</button>
+                <button class="format-btn" data-format="embed" title="Embed">📎</button>
+                <button class="format-btn" data-format="table" title="Table">表格</button>
+                <button class="format-btn" data-format="markdown" title="Markdown Preview">📄</button>
+                <button class="format-btn" data-format="preview" title="Toggle Preview">👁️</button>
                 <input type="file" id="imageUpload" accept="image/*" class="hidden">
+                <input type="file" id="audioUpload" accept="audio/*" class="hidden">
               </div>
               <input type="text" id="noteTitle" class="note-title-input" placeholder="Title">
               <textarea id="noteContent" class="note-content-input" placeholder="Start typing... (Use / for commands)"></textarea>
@@ -717,6 +726,107 @@
           <button class="export-option" data-format="txt">📃 Plain Text</button>
         </div>
         <button id="closeExport" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Embed Modal -->
+    <div id="embedModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>📎 Embed Content</h3>
+        <input type="text" id="embedUrl" class="form-input" placeholder="Paste URL (YouTube, Tweet, Gist, Figma)">
+        <div id="embedPreview" style="margin:12px 0;min-height:100px;background:var(--surface);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">Preview will appear here</div>
+        <div class="modal-actions">
+          <button id="insertEmbed" class="btn btn-primary">Insert</button>
+          <button id="closeEmbed" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Recorder -->
+    <div id="audioRecorder" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🎤 Record Audio</h3>
+        <div id="audioRecordUI" style="text-align:center;padding:20px">
+          <button id="startAudioRecord" class="btn btn-primary" style="font-size:2rem;padding:20px;border-radius:50%">🎙️</button>
+          <p id="audioStatus" style="margin-top:12px;color:var(--text-secondary)">Click to start recording</p>
+        </div>
+        <div id="audioPlayback" class="hidden" style="text-align:center;padding:20px">
+          <audio id="audioPlayer" controls style="width:100%"></audio>
+          <div style="margin-top:12px">
+            <button id="saveAudio" class="btn btn-primary">Save to Note</button>
+            <button id="discardAudio" class="btn btn-secondary">Discard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen Recorder -->
+    <div id="screenRecorder" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🖥️ Screen Recording</h3>
+        <div style="text-align:center;padding:20px">
+          <button id="startScreenRecord" class="btn btn-primary" style="font-size:2rem;padding:20px">🎬</button>
+          <p style="margin-top:12px;color:var(--text-secondary)">Click to start screen recording</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Biometric Login Modal -->
+    <div id="biometricModal" class="modal-overlay hidden">
+      <div class="modal-box" style="text-align:center">
+        <h3>🔐 Biometric Login</h3>
+        <div style="font-size:4rem;margin:20px">👆</div>
+        <p>Use fingerprint or face to login</p>
+        <button id="enableBiometric" class="btn btn-primary" style="margin-top:16px">Enable Biometric</button>
+        <button id="loginWithBiometric" class="btn btn-primary" style="margin-top:16px">Login with Biometric</button>
+      </div>
+    </div>
+
+    <!-- 2FA Modal -->
+    <div id="twoFactorModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🔒 Two-Factor Authentication</h3>
+        <p style="color:var(--text-secondary);margin-bottom:16px">Scan this QR code with your authenticator app</p>
+        <div id="qrCode" style="text-align:center;padding:20px;background:white;border-radius:8px">
+          <p>Generating QR code...</p>
+        </div>
+        <input type="text" id="twoFactorCode" class="form-input" placeholder="Enter 6-digit code" maxlength="6" style="margin-top:16px;text-align:center;font-size:1.5rem;letter-spacing:8px">
+        <div class="modal-actions">
+          <button id="verify2FA" class="btn btn-primary">Verify</button>
+          <button id="close2FA" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Integration Settings -->
+    <div id="integrationsModal" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:500px">
+        <h3>🔗 Integrations</h3>
+        <div class="integration-option">
+          <div class="integration-icon">📅</div>
+          <div class="integration-info">
+            <h4>Google Calendar</h4>
+            <p>Sync notes with calendar events</p>
+          </div>
+          <button class="btn btn-secondary" onclick="connectCalendar()">Connect</button>
+        </div>
+        <div class="integration-option">
+          <div class="integration-icon">🐙</div>
+          <div class="integration-info">
+            <h4>GitHub</h4>
+            <p>Link notes to repos & issues</p>
+          </div>
+          <button class="btn btn-secondary" onclick="connectGitHub()">Connect</button>
+        </div>
+        <div class="integration-option">
+          <div class="integration-icon">💬</div>
+          <div class="integration-info">
+            <h4>Slack</h4>
+            <p>Save messages to CodexNoir</p>
+          </div>
+          <button class="btn btn-secondary" onclick="connectSlack()">Connect</button>
+        </div>
+        <button id="closeIntegrations" class="btn btn-secondary" style="width:100%;margin-top:16px">Close</button>
       </div>
     </div>
     
