@@ -71,6 +71,10 @@ const noteSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  isPrivate: {
+    type: Boolean,
+    default: false
+  },
   sharedWith: [{
     email: String,
     role: { type: String, enum: ['view', 'comment', 'edit'], default: 'view' }

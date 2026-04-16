@@ -228,4 +228,101 @@ Tasks: ${tasks_context || 'No pending tasks'}`;
   }
 });
 
+// Related Notes - Find related notes
+router.post('/related', async (req, res) => {
+  try {
+    const { noteId, title, content, allNotes } = req.body;
+    
+    if (!allNotes || allNotes.length < 2) {
+      return res.json({ related: [] });
+    }
+    
+    const currentNote = `${title} ${content}`.toLowerCase();
+    const otherNotes = allNotes.filter(n => n._id !== noteId);
+    
+    const prompt = `Given this note:
+Title: ${title}
+Content: ${content.substring(0, 500)}
+
+And these other notes:
+${otherNotes.map(n => `- ${n.title}: ${n.content.substring(0, 200)}`).join('\n')}
+
+Find the top 3 most related notes based on topic similarity. Return as JSON array with "_id" and "title" fields only.`;
+    
+    const result = await generateContent(prompt);
+    
+    let related = [];
+    try {
+      const match = result.match(/\[[\s\S]*\]/);
+      if (match) {
+        const parsed = JSON.parse(match);
+        related = parsed.filter(r => allNotes.find(n => n.title === r.title));
+      }
+    } catch (e) {
+      // Parse manually if JSON fails
+    }
+    
+    res.json({ related });
+  } catch (error) {
+    console.error('Related notes error:', error.message);
+    res.status(500).json({ message: 'Error finding related notes' });
+  }
+});
+
+// Weekly Summary - Auto-summarize notes
+router.post('/weekly-summary', async (req, res) => {
+  try {
+    const { notes } = req.body;
+    
+    if (!notes || notes.length === 0) {
+      return res.json({ summary: 'No notes to summarize' });
+    }
+    
+    const notesText = notes.map(n => `## ${n.title}\n${n.content.substring(0, 300)}`).join('\n\n');
+    
+    const prompt = `Create a weekly summary of these notes. Organize by topics/themes, highlight key insights, and list action items if any.
+
+Notes:
+${notesText}`;
+    
+    const summary = await generateContent(prompt);
+    res.json({ summary });
+  } catch (error) {
+    console.error('Weekly summary error:', error.message);
+    res.status(500).json({ message: 'Error generating weekly summary' });
+  }
+});
+
+// Copilot - Real-time writing assistance
+router.post('/copilot', async (req, res) => {
+  try {
+    const { context, currentText, cursorPosition, action } = req.body;
+    
+    let prompt = '';
+    
+    switch (action) {
+      case 'continue':
+        prompt = `Continue this text naturally in the same style:\n\n${currentText}`;
+        break;
+      case 'complete':
+        prompt = `Complete this sentence/paragraph:\n\n${currentText}`;
+        break;
+      case 'suggest':
+        prompt = `Based on this context, suggest what the user might want to write next (2-3 suggestions):\n\n${currentText}`;
+        break;
+      case 'explain':
+        prompt = `Explain or expand on this:\n\n${currentText}`;
+        break;
+      default:
+        prompt = `Help with this:\n\n${currentText}`;
+    }
+    
+    const suggestion = await generateContent(prompt);
+    res.json({ suggestion });
+  } catch (error) {
+    console.error('Copilot error:', error.message);
+    res.status(500).json({ message: 'Error getting AI suggestion' });
+  }
+});
+
 module.exports = router;

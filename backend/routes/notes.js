@@ -218,4 +218,24 @@ router.get('/public/:slug', async (req, res) => {
   }
 });
 
+// Create public share link
+router.post('/:id/public', async (req, res) => {
+  try {
+    const note = await Note.findById(req.params.id);
+    
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+    
+    if (!note.publicLink) {
+      note.publicLink = Math.random().toString(36).substring(2, 10);
+      await note.save();
+    }
+    
+    res.json({ slug: note.publicLink });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating public link' });
+  }
+});
+
 module.exports = router;

@@ -112,7 +112,14 @@ const elements = {
   voiceCaptureBtn: document.getElementById('voiceCaptureBtn'),
   aiSuggestionContinue: document.getElementById('aiSuggestionContinue'),
   aiSuggestionSummarize: document.getElementById('aiSuggestionSummarize'),
-  aiSuggestionMemory: document.getElementById('aiSuggestionMemory')
+  aiSuggestionMemory: document.getElementById('aiSuggestionMemory'),
+  copilotSidebar: document.getElementById('copilotSidebar'),
+  closeCopilot: document.getElementById('closeCopilot'),
+  copilotMessages: document.getElementById('copilotMessages'),
+  copilotInput: document.getElementById('copilotInput'),
+  copilotSend: document.getElementById('copilotSend'),
+  offlineIndicator: document.getElementById('offlineIndicator'),
+  syncStatusDot: document.querySelector('.sync-dot')
 };
 
 let isLoginMode = true;
@@ -219,6 +226,20 @@ function toggleBookmark() {
   saveNote();
   renderNotesList();
 }
+
+// Private Mode
+function togglePrivateMode() {
+  if (!activeNote) {
+    showToast('Open a note first');
+    return;
+  }
+  activeNote.isPrivate = !activeNote.isPrivate;
+  document.getElementById('togglePrivate').classList.toggle('active', activeNote.isPrivate);
+  saveNote();
+  showToast(activeNote.isPrivate ? 'Note is now private' : 'Note is now shared');
+}
+
+document.getElementById('togglePrivate')?.addEventListener('click', togglePrivateMode);
 
 // Pomodoro Timer
 let pomodoroInterval = null;
@@ -353,6 +374,33 @@ function shareNote() {
   document.getElementById('shareEmail').value = '';
   showToast('Invitation sent!');
 }
+
+// Public Link Sharing
+document.getElementById('createPublicLink')?.addEventListener('click', async () => {
+  if (!activeNote) return;
+  
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch(`${API_URL}/notes/${activeNote._id}/public`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    
+    const publicUrl = `${window.location.origin}/public/${data.slug}`;
+    document.getElementById('publicLinkInput').value = publicUrl;
+    document.getElementById('publicLinkResult').classList.remove('hidden');
+  } catch (error) {
+    showToast('Error creating public link', 'error');
+  }
+});
+
+document.getElementById('copyPublicLink')?.addEventListener('click', () => {
+  const input = document.getElementById('publicLinkInput');
+  input.select();
+  document.execCommand('copy');
+  showToast('Link copied!');
+});
 
 // Comments
 let comments = [];
@@ -508,6 +556,14 @@ function handleKeyboard(e) {
     }
   }
   
+  // Copilot Sidebar (C)
+  if (key === 'c' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      toggleCopilotSidebar();
+      return;
+    }
+  }
+  
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   
   if (e.ctrlKey || e.metaKey) {
@@ -542,13 +598,17 @@ const commands = [
   { id: 'ai-chat', label: 'AI Chat', icon: '🤖', action: () => { selectAITool('chat'); toggleAIPanel(); } },
   { id: 'calendar', label: 'Calendar View', icon: '📅', action: () => { document.getElementById('calendarPanel').classList.remove('hidden'); renderCalendar(); } },
   { id: 'focus', label: 'Focus Mode', icon: '🎯', shortcut: 'F', action: () => toggleFocusMode() },
+  { id: 'copilot', label: 'AI Copilot', icon: '🤖', shortcut: 'C', action: () => toggleCopilotSidebar() },
   { id: 'pomodoro', label: 'Start Pomodoro', icon: '⏱️', action: () => { document.getElementById('pomodoroPanel').classList.remove('hidden'); } },
   { id: 'stats', label: 'View Stats', icon: '📊', action: () => { updateStats(); document.getElementById('statsPanel').classList.remove('hidden'); } },
   { id: 'theme', label: 'Toggle Theme', icon: '🌙', action: () => toggleTheme() },
   { id: 'export', label: 'Export Note', icon: '📤', action: () => showExportModal() },
   { id: 'backup', label: 'Backup Data', icon: '💾', action: () => exportBackup() },
   { id: 'restore', label: 'Restore Data', icon: '📥', action: () => importBackup() },
-  { id: 'help', label: 'Keyboard Shortcuts', icon: '❓', shortcut: '?', action: () => document.getElementById('shortcutsModal').classList.remove('hidden') }
+  { id: 'help', label: 'Keyboard Shortcuts', icon: '❓', shortcut: '?', action: () => document.getElementById('shortcutsModal').classList.remove('hidden') },
+  { id: 'weekly-summary', label: 'Weekly Summary', icon: '📅', action: () => { selectAITool('weekly'); toggleAIPanel(); } },
+  { id: 'daily-brief', label: 'Daily Brief', icon: '🌅', action: () => { selectAITool('brief'); toggleAIPanel(); } },
+  { id: 'related-notes', label: 'Related Notes', icon: '🔗', action: () => { selectAITool('related'); toggleAIPanel(); } }
 ];
 
 let paletteIndex = 0;
@@ -664,6 +724,130 @@ function toggleFocusMode() {
 function exitFocusMode() {
   document.body.classList.remove('focus-mode');
   document.getElementById('focusModeBtn').classList.remove('hidden');
+  elements.copilotSidebar?.classList.add('hidden');
+}
+
+// Copilot Sidebar
+function toggleCopilotSidebar() {
+  if (!elements.copilotSidebar) return;
+  
+  const isHidden = elements.copilotSidebar.classList.contains('hidden');
+  
+  if (isHidden) {
+    elements.copilotSidebar.classList.remove('hidden');
+    elements.copilotInput.focus();
+  } else {
+    elements.copilotSidebar.classList.add('hidden');
+  }
+}
+
+if (elements.closeCopilot) {
+  elements.closeCopilot.addEventListener('click', toggleCopilotSidebar);
+}
+
+if (elements.copilotSend) {
+  elements.copilotSend.addEventListener('click', sendCopilotMessage);
+}
+
+if (elements.copilotInput) {
+  elements.copilotInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendCopilotMessage();
+  });
+}
+
+document.querySelectorAll('.copilot-suggestion').forEach(btn => {
+  btn.addEventListener('click', () => {
+    sendCopilotAction(btn.dataset.action);
+  });
+});
+
+async function sendCopilotMessage() {
+  const message = elements.copilotInput.value.trim();
+  if (!message) return;
+  
+  addCopilotMessage(message, 'user');
+  elements.copilotInput.value = '';
+  
+  showCopilotTyping();
+  
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/ai/copilot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ 
+        action: 'explain',
+        currentText: message,
+        context: activeNote?.content || ''
+      })
+    });
+    
+    const data = await res.json();
+    removeCopilotTyping();
+    addCopilotMessage(data.suggestion || 'I can help you with your writing. Try the suggestions above!', 'ai');
+  } catch (error) {
+    removeCopilotTyping();
+    addCopilotMessage('Sorry, I encountered an error. Try again!', 'ai');
+  }
+}
+
+async function sendCopilotAction(action) {
+  if (!activeNote) {
+    showToast('Open a note first', 'error');
+    return;
+  }
+  
+  const text = elements.noteContent.value || '';
+  const cursorPos = elements.noteContent.selectionStart;
+  
+  showCopilotTyping();
+  
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/ai/copilot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        action,
+        currentText: text,
+        cursorPosition: cursorPos,
+        context: activeNote.title + '\n' + text
+      })
+    });
+    
+    const data = await res.json();
+    removeCopilotTyping();
+    
+    if (action === 'suggest') {
+      addCopilotMessage('Suggestions: ' + (data.suggestion || 'No suggestions'), 'ai');
+    } else {
+      addCopilotMessage(data.suggestion || 'Try again', 'ai');
+    }
+  } catch (error) {
+    removeCopilotTyping();
+    addCopilotMessage('Error: ' + error.message, 'ai');
+  }
+}
+
+function addCopilotMessage(text, type) {
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `copilot-message ${type}`;
+  msgDiv.textContent = text;
+  elements.copilotMessages.appendChild(msgDiv);
+  elements.copilotMessages.scrollTop = elements.copilotMessages.scrollHeight;
+}
+
+function showCopilotTyping() {
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'copilot-typing';
+  typingDiv.id = 'copilotTyping';
+  typingDiv.innerHTML = '<span></span><span></span><span></span>';
+  elements.copilotMessages.appendChild(typingDiv);
+  elements.copilotMessages.scrollTop = elements.copilotMessages.scrollHeight;
+}
+
+function removeCopilotTyping() {
+  document.getElementById('copilotTyping')?.remove();
 }
 
 document.getElementById('focusModeBtn').addEventListener('click', toggleFocusMode);
@@ -1805,12 +1989,70 @@ function createNoteItem(note) {
   const icon = intentIcons[note.intent] || '';
   
   return `
-    <div class="note-item ${activeNote && activeNote._id === note._id ? 'active' : ''}" data-id="${note._id}">
+    <div class="note-item ${activeNote && activeNote._id === note._id ? 'active' : ''}" 
+         data-id="${note._id}" 
+         draggable="true"
+         data-notebook="${note.notebookId || ''}">
       <div class="note-item-title">${icon} ${escapeHtml(note.title || 'New Note')}</div>
       <div class="note-item-preview">${escapeHtml(preview)}</div>
       <div class="note-item-date">${date}</div>
     </div>
   `;
+}
+
+// Drag and Drop for notes
+let draggedNoteId = null;
+
+function initDragAndDrop() {
+  elements.notesList.addEventListener('dragstart', (e) => {
+    const noteItem = e.target.closest('.note-item');
+    if (noteItem) {
+      draggedNoteId = noteItem.dataset.id;
+      e.dataTransfer.effectAllowed = 'move';
+      noteItem.classList.add('dragging');
+    }
+  });
+  
+  elements.notesList.addEventListener('dragend', (e) => {
+    const noteItem = e.target.closest('.note-item');
+    if (noteItem) {
+      noteItem.classList.remove('dragging');
+      draggedNoteId = null;
+    }
+  });
+  
+  elements.notebooksList?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const notebookItem = e.target.closest('.notebook-item');
+    if (notebookItem) {
+      notebookItem.classList.add('drag-over');
+    }
+  });
+  
+  elements.notebooksList?.addEventListener('dragleave', (e) => {
+    const notebookItem = e.target.closest('.notebook-item');
+    if (notebookItem) {
+      notebookItem.classList.remove('drag-over');
+    }
+  });
+  
+  elements.notebooksList?.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const notebookItem = e.target.closest('.notebook-item');
+    if (notebookItem && draggedNoteId) {
+      notebookItem.classList.remove('drag-over');
+      const notebookId = notebookItem.dataset.id;
+      
+      // Update note's notebook
+      const note = notes.find(n => n._id === draggedNoteId);
+      if (note) {
+        note.notebookId = notebookId;
+        await saveNoteToServer(note);
+        renderNotesList();
+        showToast('Note moved to notebook!', 'success');
+      }
+    }
+  });
 }
 
 function escapeHtml(text) {
@@ -2179,7 +2421,12 @@ function selectAITool(tool) {
     chat: 'Ask a question about your notes...',
     blog: 'Generating blog post...',
     tweet: 'Generating tweet thread...',
-    linkedin: 'Generating LinkedIn post...'
+    linkedin: 'Generating LinkedIn post...',
+    coach: 'Enter text for writing feedback...',
+    flashcards: 'Enter content to generate flashcards...',
+    brief: 'Generating daily brief...',
+    related: 'Finding related notes...',
+    weekly: 'Generating weekly summary...'
   };
   elements.aiInput.placeholder = placeholders[tool] || 'Enter text...';
   
@@ -2208,7 +2455,12 @@ async function executeAITool() {
       chat: '/ai/chat',
       blog: '/ai/generate',
       tweet: '/ai/generate',
-      linkedin: '/ai/generate'
+      linkedin: '/ai/generate',
+      coach: '/ai/coach',
+      flashcards: '/ai/flashcards',
+      brief: '/ai/daily-brief',
+      related: '/ai/related',
+      weekly: '/ai/weekly-summary'
     };
     const bodies = {
       summarize: { content },
@@ -2217,7 +2469,12 @@ async function executeAITool() {
       chat: { question: content, notes },
       blog: { type: 'blog', content },
       tweet: { type: 'tweet', content },
-      linkedin: { type: 'linkedin', content }
+      linkedin: { type: 'linkedin', content },
+      coach: { content },
+      flashcards: { content, title: activeNote?.title || '' },
+      brief: { notes: notes.slice(0, 10), tasks: [] },
+      related: { noteId: activeNote?._id, title: activeNote?.title || '', content: activeNote?.content || '', allNotes: notes },
+      weekly: { notes: notes.slice(0, 20) }
     };
     
     const res = await fetch(`${API_URL}${endpoints[currentAITool]}`, {
@@ -2233,6 +2490,11 @@ async function executeAITool() {
     else if (currentAITool === 'rewrite') result = data.rewritten;
     else if (currentAITool === 'chat') result = data.answer;
     else if (['blog', 'tweet', 'linkedin'].includes(currentAITool)) result = data.result;
+    else if (currentAITool === 'coach') result = data.feedback;
+    else if (currentAITool === 'flashcards') result = renderFlashcards(data.flashcards);
+    else if (currentAITool === 'brief') result = data.brief;
+    else if (currentAITool === 'related') result = renderRelatedNotes(data.related);
+    else if (currentAITool === 'weekly') result = data.summary;
     
     elements.aiContent.innerHTML = `<div class="ai-result">${escapeHtml(result)}</div>`;
     showToast('Generated!', 'success');
@@ -2242,6 +2504,36 @@ async function executeAITool() {
   
   elements.aiLoading.classList.add('hidden');
   elements.aiContent.classList.remove('hidden');
+}
+
+function renderFlashcards(flashcards) {
+  if (!flashcards || flashcards.length === 0) return 'No flashcards generated';
+  return flashcards.map((f, i) => `
+    <div class="flashcard" style="background:var(--surface);padding:12px;margin:8px 0;border-radius:8px;border:1px solid var(--border)">
+      <strong>Q${i+1}:</strong> ${escapeHtml(f.front)}<br>
+      <span style="color:var(--text-secondary)"><strong>A:</strong> ${escapeHtml(f.back)}</span>
+    </div>
+  `).join('');
+}
+
+function renderRelatedNotes(related) {
+  if (!related || related.length === 0) return 'No related notes found';
+  return `<div class="related-notes">
+    <p style="margin-bottom:12px">Related Notes:</p>
+    ${related.map(n => `
+      <button class="related-note-btn" onclick="openNoteById('${n._id}')" style="display:block;width:100%;padding:10px;margin:4px 0;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:left">
+        📄 ${escapeHtml(n.title)}
+      </button>
+    `).join('')}
+  </div>`;
+}
+
+function openNoteById(noteId) {
+  const note = notes.find(n => n._id === noteId);
+  if (note) {
+    selectNote(note);
+    toggleAIPanel();
+  }
 }
 
 function generateInsights() {
@@ -2305,3 +2597,149 @@ function showToast(message, type = 'success') {
 
 document.addEventListener('DOMContentLoaded', init);
 window.openNote = openNote;
+
+// ===== PWA & OFFLINE SUPPORT =====
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      console.log('Service worker not available');
+    });
+  });
+}
+
+// IndexedDB for offline storage
+let db;
+const DB_NAME = 'codexnoir-db';
+const DB_VERSION = 1;
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+    
+    request.onupgradeneeded = (event) => {
+      const database = event.target.result;
+      
+      if (!database.objectStoreNames.contains('notes')) {
+        database.createObjectStore('notes', { keyPath: '_id' });
+      }
+      if (!database.objectStoreNames.contains('notebooks')) {
+        database.createObjectStore('notebooks', { keyPath: '_id' });
+      }
+      if (!database.objectStoreNames.contains('syncQueue')) {
+        database.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+  });
+}
+
+async function saveToIndexedDB(storeName, data) {
+  if (!db) await initDB();
+  const tx = db.transaction(storeName, 'readwrite');
+  const store = tx.objectStore(storeName);
+  
+  if (Array.isArray(data)) {
+    data.forEach(item => store.put(item));
+  } else {
+    store.put(data);
+  }
+  
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getFromIndexedDB(storeName) {
+  if (!db) await initDB();
+  const tx = db.transaction(storeName, 'readonly');
+  const store = tx.objectStore(storeName);
+  const request = store.getAll();
+  
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Online/Offline handling
+window.addEventListener('online', () => {
+  elements.offlineIndicator?.classList.remove('show');
+  if (elements.syncStatusDot) {
+    elements.syncStatusDot.classList.remove('offline');
+    elements.syncStatusDot.classList.add('syncing');
+  }
+  syncOfflineData();
+  showToast('Back online!', 'success');
+});
+
+window.addEventListener('offline', () => {
+  elements.offlineIndicator?.classList.add('show');
+  if (elements.syncStatusDot) {
+    elements.syncStatusDot.classList.remove('syncing');
+    elements.syncStatusDot.classList.add('offline');
+  }
+  showToast('You are offline. Changes saved locally.', 'info');
+});
+
+// Queue changes for sync
+async function queueForSync(action, data) {
+  if (!db) await initDB();
+  const tx = db.transaction('syncQueue', 'readwrite');
+  const store = tx.objectStore('syncQueue');
+  store.add({ action, data, timestamp: Date.now() });
+}
+
+// Sync queued changes when online
+async function syncOfflineData() {
+  if (!navigator.onLine) return;
+  
+  try {
+    const queued = await getFromIndexedDB('syncQueue');
+    if (queued.length === 0) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    for (const item of queued) {
+      try {
+        await fetch(`${API_URL}${item.action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(item.data)
+        });
+      } catch (e) {
+        console.log('Sync failed for item:', item);
+      }
+    }
+    
+    // Clear queue after sync
+    const tx = db.transaction('syncQueue', 'readwrite');
+    tx.objectStore('syncQueue').clear();
+    
+    if (elements.syncStatusDot) {
+      elements.syncStatusDot.classList.remove('syncing');
+    }
+    
+    showToast('Synced!', 'success');
+  } catch (error) {
+    console.log('Sync error:', error);
+  }
+}
+
+// Initialize
+initDB().then(() => console.log('IndexedDB initialized')).catch(console.error);
+
+// Request notification permission
+if ('Notification' in window && Notification.permission === 'default') {
+  document.getElementById('header')?.addEventListener('click', () => {
+    Notification.requestPermission();
+  }, { once: true });
+}
