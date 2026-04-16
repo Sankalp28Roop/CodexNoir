@@ -1794,7 +1794,53 @@ function toggleTheme() {
 
 function toggleSidebar() {
   elements.sidebar.classList.toggle('open');
+  document.getElementById('sidebarOverlay')?.classList.toggle('show', elements.sidebar.classList.contains('open'));
 }
+
+function closeSidebar() {
+  elements.sidebar.classList.remove('open');
+  document.getElementById('sidebarOverlay')?.classList.remove('show');
+}
+
+// Touch swipe support for mobile sidebar
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  touchEndX = e.changedTouches[0].screenX;
+  handleSwipe();
+}, { passive: true });
+
+function handleSwipe() {
+  const swipeThreshold = 50;
+  const diff = touchStartX - touchEndX;
+  
+  // Swipe right to open sidebar
+  if (diff < -swipeThreshold && touchStartX < 50) {
+    if (!elements.sidebar.classList.contains('open')) {
+      toggleSidebar();
+    }
+  }
+  
+  // Swipe left to close sidebar
+  if (diff > swipeThreshold && elements.sidebar.classList.contains('open')) {
+    closeSidebar();
+  }
+}
+
+// Close sidebar when clicking overlay
+document.getElementById('sidebarOverlay')?.addEventListener('click', closeSidebar);
+
+// Close sidebar on escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && elements.sidebar.classList.contains('open')) {
+    closeSidebar();
+  }
+});
 
 function toggleAIPanel() {
   elements.aiPanel.classList.toggle('hidden');
