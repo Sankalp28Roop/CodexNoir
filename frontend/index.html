@@ -241,6 +241,8 @@
           <button id="dailyBriefBtn" class="icon-btn" title="Daily Brief">🌅</button>
           <button id="timeTravelBtn" class="icon-btn" title="Time Travel">⏰</button>
           <button id="sharePublicBtn" class="icon-btn" title="Share Publicly">🌐</button>
+          <button id="focusModeBtn" class="icon-btn" title="Focus Mode (F)">🎯</button>
+          <button id="voiceNoteBtn" class="icon-btn" title="Voice Note (V)">🎤</button>
           <button id="themeToggle" class="icon-btn theme-btn" title="Toggle Light/Dark Mode">
             <span class="theme-icon">🌙</span>
           </button>
@@ -830,6 +832,37 @@
         <div class="badges-grid" id="badgesList"></div>
       </div>
     </div>
+    
+    <!-- Command Palette -->
+    <div id="commandPalette" class="command-palette hidden">
+      <div class="palette-overlay"></div>
+      <div class="palette-box">
+        <input type="text" id="commandInput" placeholder="Type a command or search... (Cmd+K)" autocomplete="off">
+        <div class="palette-results" id="paletteResults"></div>
+        <div class="palette-hint">
+          <span>↑↓ Navigate</span>
+          <span>↵ Select</span>
+          <span>Esc Close</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu hidden">
+      <div class="context-item" data-action="pin">📌 Pin Note</div>
+      <div class="context-item" data-action="bookmark">🔖 Bookmark</div>
+      <div class="context-item" data-action="share">📤 Share</div>
+      <div class="context-item" data-action="duplicate">📋 Duplicate</div>
+      <div class="context-divider"></div>
+      <div class="context-item" data-action="export">📤 Export</div>
+      <div class="context-item danger" data-action="delete">🗑️ Delete</div>
+    </div>
+    
+    <!-- Quick Capture Floating -->
+    <button id="quickCaptureBtn" class="quick-capture-btn" title="Quick Capture (Q)">⚡</button>
+    
+    <!-- Focus Mode Toggle -->
+    <button id="focusModeBtn" class="icon-btn" title="Focus Mode (F)">🎯</button>
     
     <!-- Lock Screen -->
     <div id="lockScreen" class="screen hidden">

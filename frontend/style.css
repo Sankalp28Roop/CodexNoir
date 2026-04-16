@@ -2277,3 +2277,229 @@ body.focus-mode .note-view {
   max-width: 800px;
   margin: 0 auto;
 }
+
+/* Command Palette */
+.command-palette {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 100px;
+}
+
+.command-palette.hidden {
+  display: none;
+}
+
+.palette-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.palette-box {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: scaleIn 0.2s ease;
+}
+
+#commandInput {
+  width: 100%;
+  padding: var(--space-4);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  font-size: 1.125rem;
+  color: var(--text-primary);
+}
+
+#commandInput:focus {
+  outline: none;
+}
+
+.palette-results {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.palette-item:hover,
+.palette-item.selected {
+  background: var(--bg-tertiary);
+}
+
+.palette-item-icon {
+  font-size: 1.25rem;
+}
+
+.palette-item-text {
+  flex: 1;
+}
+
+.palette-item-shortcut {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.palette-hint {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-2);
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  z-index: 9999;
+  padding: var(--space-1);
+}
+
+.context-menu.hidden {
+  display: none;
+}
+
+.context-item {
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.context-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.context-item.danger {
+  color: var(--danger);
+}
+
+.context-divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--space-1) 0;
+}
+
+/* Quick Capture Button */
+.quick-capture-btn {
+  position: fixed;
+  bottom: var(--space-8);
+  left: var(--space-8);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #16a34a);
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  z-index: 90;
+  transition: var(--transition);
+}
+
+.quick-capture-btn:hover {
+  transform: scale(1.1) rotate(15deg);
+}
+
+.quick-capture-btn.hidden {
+  display: none;
+}
+
+/* Focus Mode Enhanced */
+body.focus-mode {
+  background: var(--bg-primary);
+}
+
+body.focus-mode .note-editor-panel {
+  padding: var(--space-8);
+}
+
+body.focus-mode .note-title-input {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-6);
+}
+
+body.focus-mode .note-content-input {
+  font-size: 1.125rem;
+  line-height: 2;
+}
+
+body.focus-mode #focusModeBtn {
+  display: flex;
+}
+
+/* Focus Mode Exit Button */
+.focus-exit {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  z-index: 100;
+}
+
+/* Voice Recording */
+.voice-recording {
+  position: fixed;
+  bottom: var(--space-8);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: white;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  z-index: 100;
+  animation: pulse 1s infinite;
+}
+
+.voice-recording.hidden {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .quick-capture-btn {
+    bottom: 5rem;
+    left: var(--space-4);
+  }
+}

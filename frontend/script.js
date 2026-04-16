@@ -475,13 +475,46 @@ notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
 comments = JSON.parse(localStorage.getItem('comments') || '[]');
 
 function handleKeyboard(e) {
+  const key = e.key.toLowerCase();
+  
+  // Command Palette (Cmd+K or Ctrl+K)
+  if ((e.metaKey || e.ctrlKey) && key === 'k') {
+    e.preventDefault();
+    showCommandPalette();
+    return;
+  }
+  
+  // Focus Mode (F)
+  if (key === 'f' && !e.ctrlKey && !e.metaKey && !e.target.closest('.editor-panel')) {
+    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      toggleFocusMode();
+      return;
+    }
+  }
+  
+  // Quick Capture (Q)
+  if (key === 'q' && !e.ctrlKey && !e.metaKey) {
+    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      showQuickCapture();
+      return;
+    }
+  }
+  
+  // Voice Note (V)
+  if (key === 'v' && !e.ctrlKey && !e.metaKey) {
+    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      toggleVoiceRecording();
+      return;
+    }
+  }
+  
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   
-  const key = e.key.toLowerCase();
   if (e.ctrlKey || e.metaKey) {
     if (key === 'b') { e.preventDefault(); applyFormat('bold'); }
     else if (key === 'i') { e.preventDefault(); applyFormat('italic'); }
     else if (key === 's') { e.preventDefault(); saveNote(); }
+    else if (key === 'n') { e.preventDefault(); createNewNote(); }
   } else {
     if (key === 'd') deleteActiveNote();
     else if (key === 'p') togglePinNote();
@@ -493,11 +526,283 @@ function handleKeyboard(e) {
       document.getElementById('shortcutsModal').classList.add('hidden');
       document.getElementById('shareModal').classList.add('hidden');
       document.getElementById('commentsPanel').classList.add('hidden');
+      document.getElementById('commandPalette').classList.add('hidden');
+      document.getElementById('contextMenu').classList.add('hidden');
+      exitFocusMode();
     }
   }
 }
 
-// ===== NEW FEATURES =====
+// ===== MODERN FEATURES =====
+
+// Command Palette
+const commands = [
+  { id: 'new-note', label: 'Create New Note', icon: '📝', shortcut: 'Ctrl+N', action: () => createNewNote() },
+  { id: 'search', label: 'Search Notes', icon: '🔍', shortcut: 'Ctrl+F', action: () => document.getElementById('searchInput').focus() },
+  { id: 'ai-chat', label: 'AI Chat', icon: '🤖', action: () => { selectAITool('chat'); toggleAIPanel(); } },
+  { id: 'calendar', label: 'Calendar View', icon: '📅', action: () => { document.getElementById('calendarPanel').classList.remove('hidden'); renderCalendar(); } },
+  { id: 'focus', label: 'Focus Mode', icon: '🎯', shortcut: 'F', action: () => toggleFocusMode() },
+  { id: 'pomodoro', label: 'Start Pomodoro', icon: '⏱️', action: () => { document.getElementById('pomodoroPanel').classList.remove('hidden'); } },
+  { id: 'stats', label: 'View Stats', icon: '📊', action: () => { updateStats(); document.getElementById('statsPanel').classList.remove('hidden'); } },
+  { id: 'theme', label: 'Toggle Theme', icon: '🌙', action: () => toggleTheme() },
+  { id: 'export', label: 'Export Note', icon: '📤', action: () => showExportModal() },
+  { id: 'backup', label: 'Backup Data', icon: '💾', action: () => exportBackup() },
+  { id: 'restore', label: 'Restore Data', icon: '📥', action: () => importBackup() },
+  { id: 'help', label: 'Keyboard Shortcuts', icon: '❓', shortcut: '?', action: () => document.getElementById('shortcutsModal').classList.remove('hidden') }
+];
+
+let paletteIndex = 0;
+
+function showCommandPalette() {
+  document.getElementById('commandPalette').classList.remove('hidden');
+  document.getElementById('commandInput').value = '';
+  document.getElementById('commandInput').focus();
+  renderPaletteResults('');
+  paletteIndex = 0;
+}
+
+function renderPaletteResults(query) {
+  const filtered = commands.filter(c => 
+    c.label.toLowerCase().includes(query.toLowerCase()) ||
+    c.id.includes(query.toLowerCase())
+  );
+  
+  const results = document.getElementById('paletteResults');
+  results.innerHTML = filtered.map((c, i) => `
+    <div class="palette-item ${i === paletteIndex ? 'selected' : ''}" data-index="${i}">
+      <span class="palette-item-icon">${c.icon}</span>
+      <span class="palette-item-text">${c.label}</span>
+      ${c.shortcut ? `<span class="palette-item-shortcut">${c.shortcut}</span>` : ''}
+    </div>
+  `).join('');
+  
+  document.querySelectorAll('.palette-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const index = parseInt(item.dataset.index);
+      filtered[index].action();
+      document.getElementById('commandPalette').classList.add('hidden');
+    });
+  });
+}
+
+document.getElementById('commandInput').addEventListener('input', (e) => {
+  renderPaletteResults(e.target.value);
+});
+
+document.getElementById('commandInput').addEventListener('keydown', (e) => {
+  const items = document.querySelectorAll('.palette-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    paletteIndex = (paletteIndex + 1) % items.length;
+    updatePaletteSelection();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    paletteIndex = (paletteIndex - 1 + items.length) % items.length;
+    updatePaletteSelection();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (items[paletteIndex]) items[paletteIndex].click();
+  } else if (e.key === 'Escape') {
+    document.getElementById('commandPalette').classList.add('hidden');
+  }
+});
+
+function updatePaletteSelection() {
+  document.querySelectorAll('.palette-item').forEach((item, i) => {
+    item.classList.toggle('selected', i === paletteIndex);
+  });
+}
+
+document.querySelector('.palette-overlay').addEventListener('click', () => {
+  document.getElementById('commandPalette').classList.add('hidden');
+});
+
+// Context Menu
+let contextNoteId = null;
+
+function showContextMenu(e, noteId) {
+  e.preventDefault();
+  contextNoteId = noteId;
+  const menu = document.getElementById('contextMenu');
+  menu.classList.remove('hidden');
+  menu.style.left = e.pageX + 'px';
+  menu.style.top = e.pageY + 'px';
+}
+
+function hideContextMenu() {
+  document.getElementById('contextMenu').classList.add('hidden');
+}
+
+document.querySelectorAll('.context-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const action = item.dataset.action;
+    if (action === 'pin') togglePinNote();
+    else if (action === 'bookmark') toggleBookmark();
+    else if (action === 'share') showShareModal();
+    else if (action === 'duplicate') duplicateNote();
+    else if (action === 'export') showExportModal();
+    else if (action === 'delete') deleteActiveNote();
+    hideContextMenu();
+  });
+});
+
+document.addEventListener('click', hideContextMenu);
+
+// Focus Mode
+function toggleFocusMode() {
+  document.body.classList.toggle('focus-mode');
+  const isFocus = document.body.classList.contains('focus-mode');
+  
+  if (isFocus) {
+    document.getElementById('focusModeBtn').classList.add('hidden');
+    showToast('Focus Mode ON - Press Esc or F to exit');
+  } else {
+    exitFocusMode();
+  }
+}
+
+function exitFocusMode() {
+  document.body.classList.remove('focus-mode');
+  document.getElementById('focusModeBtn').classList.remove('hidden');
+}
+
+document.getElementById('focusModeBtn').addEventListener('click', toggleFocusMode);
+
+// Quick Capture
+function showQuickCapture() {
+  const title = prompt('Quick Note Title:');
+  if (title) {
+    createNewNote();
+    elements.noteTitle.value = title;
+    elements.noteContent.focus();
+    showToast('Quick note created!');
+  }
+}
+
+document.getElementById('quickCaptureBtn').addEventListener('click', showQuickCapture);
+
+// Voice Note
+let recognition = null;
+let isListening = false;
+
+function toggleVoiceRecording() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Voice input not supported in this browser');
+    return;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  
+  recognition.onstart = () => {
+    isListening = true;
+    showVoiceRecordingUI(true);
+  };
+  
+  recognition.onresult = (event) => {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+    if (finalTranscript) {
+      if (!activeNote) createNewNote();
+      elements.noteContent.value += ' ' + finalTranscript;
+      handleNoteChange();
+    }
+  };
+  
+  recognition.onerror = (e) => {
+    console.error('Voice error:', e);
+    showToast('Voice input error');
+    stopVoiceRecording();
+  };
+  
+  recognition.onend = () => {
+    showVoiceRecordingUI(false);
+  };
+  
+  if (!isListening) {
+    recognition.start();
+  } else {
+    stopVoiceRecording();
+  }
+}
+
+function stopVoiceRecording() {
+  if (recognition) {
+    recognition.stop();
+    isListening = false;
+    showVoiceRecordingUI(false);
+  }
+}
+
+function showVoiceRecordingUI(show) {
+  let indicator = document.getElementById('voiceIndicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'voiceIndicator';
+    indicator.className = 'voice-recording hidden';
+    indicator.innerHTML = '<span>🎤</span> <span>Recording... (V to stop)</span>';
+    document.body.appendChild(indicator);
+  }
+  indicator.classList.toggle('hidden', !show);
+}
+
+document.getElementById('voiceNoteBtn').addEventListener('click', toggleVoiceRecording);
+
+// Export/Import Backup
+function exportBackup() {
+  const data = {
+    notes: notes,
+    notebooks: notebooks,
+    tags: localStorage.getItem('tags'),
+    xp: localStorage.getItem('xp'),
+    streak: localStorage.getItem('streak'),
+    exportedAt: new Date().toISOString()
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `codexnoir-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup exported!');
+}
+
+function importBackup() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.notes) notes = data.notes;
+        if (data.notebooks) notebooks = data.notebooks;
+        if (data.tags) localStorage.setItem('tags', data.tags);
+        saveNotes();
+        renderNotesList();
+        renderNotebooks();
+        showToast('Backup restored!');
+      } catch (err) {
+        showToast('Invalid backup file');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// Initialize modern features
+document.getElementById('focusModeBtn').addEventListener('click', toggleFocusMode);
 
 // Note Preview & Markdown
 let currentEditorTab = 'edit';
