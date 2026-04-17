@@ -16,36 +16,36 @@ app.use(express.json());
 
 const connectDB = require('./config/db');
 
-async function startServer() {
-  try {
-    await connectDB();
+let dbReady = false;
+
+connectDB()
+  .then(() => {
+    dbReady = true;
     console.log('Database connected');
-    
-    const authRoutes = require('./routes/auth');
-    const notesRoutes = require('./routes/notes');
-    const aiRoutes = require('./routes/ai');
+  })
+  .catch(err => {
+    console.error('DB Error:', err.message);
+  });
 
-    app.use('/api/auth', authRoutes);
-    app.use('/api/notes', notesRoutes);
-    app.use('/api/ai', aiRoutes);
-    
-    app.use(express.static(frontendPath));
-
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(frontendPath, 'index.html'));
-    });
-
-    app.use((err, req, res, next) => {
-      console.error('Error:', err.message);
-      res.status(500).json({ message: 'Something went wrong!' });
-    });
-    
-    console.log('Server ready');
-  } catch (err) {
-    console.error('Failed to start server:', err.message);
+app.use((req, res, next) => {
+  if (!dbReady) {
+    console.log('DB not ready, waiting...');
   }
-}
+  next();
+});
 
-startServer();
+const authRoutes = require('./routes/auth');
+const notesRoutes = require('./routes/notes');
+const aiRoutes = require('./routes/ai');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/notes', notesRoutes);
+app.use('/api/ai', aiRoutes);
+
+app.use(express.static(frontendPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 module.exports = app;
