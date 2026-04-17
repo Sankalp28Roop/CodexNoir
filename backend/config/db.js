@@ -4,13 +4,18 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
 let db = null;
-const dbPath = path.join(__dirname, '../codexnoir.db');
+let SQL = null;
+
+const dbPath = process.env.VERCEL 
+  ? '/tmp/codexnoir.db' 
+  : path.join(__dirname, '../codexnoir.db');
 
 async function initializeDB() {
-  const SQL = await initSqlJs();
+  SQL = await initSqlJs();
   
   let fileBuffer = null;
-  if (fs.existsSync(dbPath)) {
+  
+  if (!process.env.VERCEL && fs.existsSync(dbPath)) {
     fileBuffer = fs.readFileSync(dbPath);
   }
   
@@ -67,12 +72,14 @@ async function initializeDB() {
     )
   `);
   
-  saveDB();
+  if (!process.env.VERCEL) {
+    saveDB();
+  }
   console.log('SQLite Database Initialized Successfully');
 }
 
 function saveDB() {
-  if (db) {
+  if (db && !process.env.VERCEL) {
     const data = db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(dbPath, buffer);
@@ -82,7 +89,7 @@ function saveDB() {
 const connectDB = async () => {
   try {
     await initializeDB();
-    console.log('SQLite Connected: ' + dbPath);
+    console.log('SQLite Connected');
   } catch (error) {
     console.error('SQLite Connection Error:', error.message);
     process.exit(1);
@@ -90,6 +97,7 @@ const connectDB = async () => {
 };
 
 function queryAll(sql, params = []) {
+  if (!db) return [];
   const stmt = db.prepare(sql);
   stmt.bind(params);
   const results = [];
@@ -106,9 +114,13 @@ function queryOne(sql, params = []) {
 }
 
 function run(sql, params = []) {
+  if (!db) return { lastInsertRowid: 0 };
   db.run(sql, params);
-  saveDB();
-  return { lastInsertRowid: db.exec("SELECT last_insert_rowid()")[0]?.values[0]?.[0] };
+  if (!process.env.VERCEL) {
+    saveDB();
+  }
+  const result = db.exec("SELECT last_insert_rowid()");
+  return { lastInsertRowid: result[0]?.values[0]?.[0] || 0 };
 }
 
 const findUserByEmail = (email) => queryOne('SELECT * FROM users WHERE email = ?', [email]);
