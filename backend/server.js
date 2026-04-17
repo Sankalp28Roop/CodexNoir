@@ -20,10 +20,22 @@ app.use(express.json());
 
 const connectDB = require('./config/db');
 
-connectDB().then(() => {
-  console.log('Database connected');
-}).catch(err => {
-  console.error('Database connection failed:', err);
+let isDBConnected = false;
+
+connectDB()
+  .then(() => {
+    isDBConnected = true;
+    console.log('Database connected successfully');
+  })
+  .catch(err => {
+    console.error('Database connection failed:', err.message);
+  });
+
+app.use((req, res, next) => {
+  if (!isDBConnected) {
+    return res.status(503).json({ message: 'Service temporarily unavailable' });
+  }
+  next();
 });
 
 app.use('/api/auth', authRoutes);
@@ -37,7 +49,7 @@ app.get('*', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error:', err.message);
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
