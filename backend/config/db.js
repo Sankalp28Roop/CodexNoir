@@ -5,95 +5,99 @@ const bcrypt = require('bcryptjs');
 
 let db = null;
 let SQL = null;
+let dbReady = null;
 
 const dbPath = process.env.VERCEL 
   ? '/tmp/codexnoir.db' 
   : path.join(__dirname, '../codexnoir.db');
 
-async function initializeDB() {
-  SQL = await initSqlJs();
-  
-  let fileBuffer = null;
-  
-  if (!process.env.VERCEL && fs.existsSync(dbPath)) {
-    fileBuffer = fs.readFileSync(dbPath);
-  }
-  
-  db = new SQL.Database(fileBuffer);
-  
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      useCase TEXT,
-      xp INTEGER DEFAULT 0,
-      streak INTEGER DEFAULT 0,
-      badges TEXT DEFAULT '[]',
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  
-  db.run(`
-    CREATE TABLE IF NOT EXISTS notes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER NOT NULL,
-      title TEXT,
-      content TEXT,
-      intent TEXT DEFAULT 'note',
-      pinned INTEGER DEFAULT 0,
-      bookmarked INTEGER DEFAULT 0,
-      color TEXT DEFAULT '#ffffff',
-      tags TEXT DEFAULT '[]',
-      reminder TEXT,
-      notebookId TEXT,
-      isTask INTEGER DEFAULT 0,
-      isComplete INTEGER DEFAULT 0,
-      publicLink TEXT,
-      isPrivate INTEGER DEFAULT 0,
-      sharedWith TEXT DEFAULT '[]',
-      comments TEXT DEFAULT '[]',
-      history TEXT DEFAULT '[]',
-      metadata TEXT DEFAULT '{}',
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  
-  db.run(`
-    CREATE TABLE IF NOT EXISTS notebooks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      description TEXT,
-      color TEXT DEFAULT '#6366f1',
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  
-  if (!process.env.VERCEL) {
-    saveDB();
-  }
-  console.log('SQLite Database Initialized Successfully');
+function initializeDB() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      SQL = await initSqlJs();
+      
+      let fileBuffer = null;
+      if (!process.env.VERCEL && fs.existsSync(dbPath)) {
+        fileBuffer = fs.readFileSync(dbPath);
+      }
+      
+      db = new SQL.Database(fileBuffer);
+      
+      db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          useCase TEXT,
+          xp INTEGER DEFAULT 0,
+          streak INTEGER DEFAULT 0,
+          badges TEXT DEFAULT '[]',
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      db.run(`
+        CREATE TABLE IF NOT EXISTS notes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          title TEXT,
+          content TEXT,
+          intent TEXT DEFAULT 'note',
+          pinned INTEGER DEFAULT 0,
+          bookmarked INTEGER DEFAULT 0,
+          color TEXT DEFAULT '#ffffff',
+          tags TEXT DEFAULT '[]',
+          reminder TEXT,
+          notebookId TEXT,
+          isTask INTEGER DEFAULT 0,
+          isComplete INTEGER DEFAULT 0,
+          publicLink TEXT,
+          isPrivate INTEGER DEFAULT 0,
+          sharedWith TEXT DEFAULT '[]',
+          comments TEXT DEFAULT '[]',
+          history TEXT DEFAULT '[]',
+          metadata TEXT DEFAULT '{}',
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      db.run(`
+        CREATE TABLE IF NOT EXISTS notebooks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          color TEXT DEFAULT '#6366f1',
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      if (!process.env.VERCEL) {
+        const data = db.export();
+        fs.writeFileSync(dbPath, Buffer.from(data));
+      }
+      
+      console.log('SQLite Database Initialized Successfully');
+      resolve();
+    } catch (error) {
+      console.error('SQLite Connection Error:', error.message);
+      reject(error);
+    }
+  });
 }
 
 function saveDB() {
   if (db && !process.env.VERCEL) {
     const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
+    fs.writeFileSync(dbPath, Buffer.from(data));
   }
 }
 
 const connectDB = async () => {
-  try {
-    await initializeDB();
-    console.log('SQLite Connected');
-  } catch (error) {
-    console.error('SQLite Connection Error:', error.message);
-    process.exit(1);
-  }
+  dbReady = initializeDB();
+  await dbReady;
 };
 
 function queryAll(sql, params = []) {
@@ -199,7 +203,6 @@ const getAllUsers = () => queryAll('SELECT * FROM users');
 const getAllNotes = () => queryAll('SELECT * FROM notes');
 
 module.exports = {
-  db,
   connectDB,
   findUserByEmail,
   findUserById,

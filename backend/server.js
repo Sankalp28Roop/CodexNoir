@@ -18,19 +18,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const connectDB = require('./config/db');
+const { connectDB } = require('./config/db');
 
-let dbInitialized = false;
+let dbReady = connectDB();
 
 app.use(async (req, res, next) => {
-  if (!dbInitialized) {
-    try {
-      await connectDB();
-      dbInitialized = true;
-    } catch (err) {
-      console.error('DB init error:', err);
-    }
-  }
+  await dbReady;
   next();
 });
 
