@@ -1,35 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const authMiddleware = require('../middleware/authMiddleware');
+const bcrypt = require('bcryptjs');
+const db = require('../config/db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'notesappsecretkey';
 
-router.post('/signup', async (req, res) => {
+router.post('/signup', (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, useCase } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = db.findUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    const user = await User.create({ name, email, password });
+    const user = db.createUser(name, email, password, useCase);
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '30d' });
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
+        useCase: user.useCase,
+        xp: user.xp || 0,
+        streak: user.streak || 0,
+        badges: JSON.parse(user.badges || '[]'),
         createdAt: user.createdAt
       }
     });
@@ -39,7 +43,7 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -47,27 +51,31 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = db.findUserByEmail(email);
     
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const isMatch = await user.matchPassword(password);
+    const isMatch = bcrypt.compareSync(password, user.password);
     
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '30d' });
 
     res.json({
       message: 'Login successful',
       token,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
+        useCase: user.useCase,
+        xp: user.xp || 0,
+        streak: user.streak || 0,
+        badges: JSON.parse(user.badges || '[]'),
         createdAt: user.createdAt
       }
     });
@@ -77,14 +85,30 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/me', authMiddleware, async (req, res) => {
+router.get('/me', (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = db.findUserById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     res.json({
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
+        useCase: user.useCase,
+        xp: user.xp || 0,
+        streak: user.streak || 0,
+        badges: JSON.parse(user.badges || '[]'),
         createdAt: user.createdAt
       }
     });

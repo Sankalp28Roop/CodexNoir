@@ -203,7 +203,7 @@ Open http://localhost:3000
 
 - **Frontend**: HTML, CSS, Vanilla JavaScript
 - **Backend**: Node.js, Express.js
-- **Database**: MongoDB (Atlas)
+- **Database**: SQLite (local, privacy-focused)
 - **AI**: Google Gemini API (gemini-2.0-flash)
 - **PWA**: Service Worker, IndexedDB, Manifest
 - **Deployment**: Vercel

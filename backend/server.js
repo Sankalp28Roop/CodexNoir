@@ -9,21 +9,18 @@ const aiRoutes = require('./routes/ai');
 
 const app = express();
 
-// Frontend path - always one level up from backend
 const frontendPath = path.join(__dirname, '../frontend');
 
 app.use(cors({
   origin: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
-// Connect DB only if URI exists
-if (process.env.MONGODB_URI) {
-  const connectDB = require('./config/db');
-  connectDB();
-}
+// Initialize SQLite database
+const connectDB = require('./config/db');
+connectDB();
 
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
