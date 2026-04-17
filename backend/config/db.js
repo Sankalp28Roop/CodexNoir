@@ -1,14 +1,22 @@
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
+let db = null;
 const dbPath = path.join(__dirname, '../codexnoir.db');
-const db = new Database(dbPath);
 
-db.pragma('journal_mode = WAL');
-
-function initializeDB() {
-  db.exec(`
+async function initializeDB() {
+  const SQL = await initSqlJs();
+  
+  let fileBuffer = null;
+  if (fs.existsSync(dbPath)) {
+    fileBuffer = fs.readFileSync(dbPath);
+  }
+  
+  db = new SQL.Database(fileBuffer);
+  
+  db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -19,8 +27,10 @@ function initializeDB() {
       streak INTEGER DEFAULT 0,
       badges TEXT DEFAULT '[]',
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-
+    )
+  `);
+  
+  db.run(`
     CREATE TABLE IF NOT EXISTS notes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       userId INTEGER NOT NULL,
@@ -42,30 +52,36 @@ function initializeDB() {
       history TEXT DEFAULT '[]',
       metadata TEXT DEFAULT '{}',
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-    );
-
+      updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  
+  db.run(`
     CREATE TABLE IF NOT EXISTS notebooks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       userId INTEGER NOT NULL,
       name TEXT NOT NULL,
       description TEXT,
       color TEXT DEFAULT '#6366f1',
-      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_notes_userId ON notes(userId);
-    CREATE INDEX IF NOT EXISTS idx_notebooks_userId ON notebooks(userId);
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )
   `);
   
+  saveDB();
   console.log('SQLite Database Initialized Successfully');
+}
+
+function saveDB() {
+  if (db) {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+  }
 }
 
 const connectDB = async () => {
   try {
-    initializeDB();
+    await initializeDB();
     console.log('SQLite Connected: ' + dbPath);
   } catch (error) {
     console.error('SQLite Connection Error:', error.message);
@@ -73,62 +89,52 @@ const connectDB = async () => {
   }
 };
 
-// Helper functions
-const findUserByEmail = (email) => {
-  const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-  return stmt.get(email);
-};
+function queryAll(sql, params = []) {
+  const stmt = db.prepare(sql);
+  stmt.bind(params);
+  const results = [];
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+  return results;
+}
 
-const findUserById = (id) => {
-  const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  return stmt.get(id);
-};
+function queryOne(sql, params = []) {
+  const results = queryAll(sql, params);
+  return results.length > 0 ? results[0] : null;
+}
+
+function run(sql, params = []) {
+  db.run(sql, params);
+  saveDB();
+  return { lastInsertRowid: db.exec("SELECT last_insert_rowid()")[0]?.values[0]?.[0] };
+}
+
+const findUserByEmail = (email) => queryOne('SELECT * FROM users WHERE email = ?', [email]);
+const findUserById = (id) => queryOne('SELECT * FROM users WHERE id = ?', [id]);
 
 const createUser = (name, email, password, useCase) => {
   const hashedPassword = bcrypt.hashSync(password, 10);
-  const stmt = db.prepare('INSERT INTO users (name, email, password, useCase) VALUES (?, ?, ?, ?)');
-  const result = stmt.run(name, email, hashedPassword, useCase || 'personal');
-  return findUserById(result.lastInsertRowid);
+  run('INSERT INTO users (name, email, password, useCase) VALUES (?, ?, ?, ?)', [name, email, hashedPassword, useCase || 'personal']);
+  return findUserByEmail(email);
 };
 
 const updateUser = (id, updates) => {
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = [...Object.values(updates), id];
-  const stmt = db.prepare(`UPDATE users SET ${fields} WHERE id = ?`);
-  return stmt.run(...values);
+  run(`UPDATE users SET ${fields} WHERE id = ?`, values);
 };
 
-// Notes helpers
-const getNotesByUser = (userId) => {
-  const stmt = db.prepare('SELECT * FROM notes WHERE userId = ? ORDER BY updatedAt DESC');
-  return stmt.all(userId);
-};
-
-const getNoteById = (id) => {
-  const stmt = db.prepare('SELECT * FROM notes WHERE id = ?');
-  return stmt.get(id);
-};
+const getNotesByUser = (userId) => queryAll('SELECT * FROM notes WHERE userId = ? ORDER BY updatedAt DESC', [userId]);
+const getNoteById = (id) => queryOne('SELECT * FROM notes WHERE id = ?', [id]);
 
 const createNote = (userId, note) => {
-  const stmt = db.prepare(`
-    INSERT INTO notes (userId, title, content, intent, pinned, bookmarked, color, tags, reminder, notebookId, isTask, isComplete)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const result = stmt.run(
-    userId,
-    note.title || '',
-    note.content || '',
-    note.intent || 'note',
-    note.pinned ? 1 : 0,
-    note.bookmarked ? 1 : 0,
-    note.color || '#ffffff',
-    JSON.stringify(note.tags || []),
-    note.reminder || null,
-    note.notebookId || null,
-    note.isTask ? 1 : 0,
-    note.isComplete ? 1 : 0
+  run(`INSERT INTO notes (userId, title, content, intent, pinned, bookmarked, color, tags, reminder, notebookId, isTask, isComplete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [userId, note.title || '', note.content || '', note.intent || 'note', note.pinned ? 1 : 0, note.bookmarked ? 1 : 0, note.color || '#ffffff', JSON.stringify(note.tags || []), note.reminder || null, note.notebookId || null, note.isTask ? 1 : 0, note.isComplete ? 1 : 0]
   );
-  return getNoteById(result.lastInsertRowid);
+  const newNote = queryOne('SELECT * FROM notes WHERE id = (SELECT MAX(id) FROM notes WHERE userId = ?)', [userId]);
+  return newNote;
 };
 
 const updateNote = (id, updates) => {
@@ -149,66 +155,36 @@ const updateNote = (id, updates) => {
     }
   });
   
-  fields.push('updatedAt = CURRENT_TIMESTAMP');
   values.push(id);
-  
-  const stmt = db.prepare(`UPDATE notes SET ${fields.join(', ')} WHERE id = ?`);
-  stmt.run(...values);
-  
+  run(`UPDATE notes SET ${fields.join(', ')}, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`, values);
   return getNoteById(id);
 };
 
-const deleteNote = (id) => {
-  const stmt = db.prepare('DELETE FROM notes WHERE id = ?');
-  return stmt.run(id);
-};
+const deleteNote = (id) => run('DELETE FROM notes WHERE id = ?', [id]);
 
 const searchNotes = (userId, query) => {
-  const stmt = db.prepare('SELECT * FROM notes WHERE userId = ? AND (title LIKE ? OR content LIKE ?) ORDER BY updatedAt DESC');
   const searchTerm = `%${query}%`;
-  return stmt.all(userId, searchTerm, searchTerm);
+  return queryAll('SELECT * FROM notes WHERE userId = ? AND (title LIKE ? OR content LIKE ?) ORDER BY updatedAt DESC', [userId, searchTerm, searchTerm]);
 };
 
-// Notebooks helpers
-const getNotebooksByUser = (userId) => {
-  const stmt = db.prepare('SELECT * FROM notebooks WHERE userId = ? ORDER BY createdAt DESC');
-  return stmt.all(userId);
-};
-
-const getNotebookById = (id) => {
-  const stmt = db.prepare('SELECT * FROM notebooks WHERE id = ?');
-  return stmt.get(id);
-};
+const getNotebooksByUser = (userId) => queryAll('SELECT * FROM notebooks WHERE userId = ? ORDER BY createdAt DESC', [userId]);
+const getNotebookById = (id) => queryOne('SELECT * FROM notebooks WHERE id = ?', [id]);
 
 const createNotebook = (userId, notebook) => {
-  const stmt = db.prepare('INSERT INTO notebooks (userId, name, description, color) VALUES (?, ?, ?, ?)');
-  const result = stmt.run(userId, notebook.name, notebook.description || '', notebook.color || '#6366f1');
-  return getNotebookById(result.lastInsertRowid);
+  run('INSERT INTO notebooks (userId, name, description, color) VALUES (?, ?, ?, ?)', [userId, notebook.name, notebook.description || '', notebook.color || '#6366f1']);
+  return queryOne('SELECT * FROM notebooks WHERE id = (SELECT MAX(id) FROM notebooks WHERE userId = ?)', [userId]);
 };
 
 const updateNotebook = (id, updates) => {
   const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
   const values = [...Object.values(updates), id];
-  const stmt = db.prepare(`UPDATE notebooks SET ${fields} WHERE id = ?`);
-  return stmt.run(...values);
+  run(`UPDATE notebooks SET ${fields} WHERE id = ?`, values);
 };
 
-const deleteNotebook = (id) => {
-  const stmt = db.prepare('DELETE FROM notebooks WHERE id = ?');
-  return stmt.run(id);
-};
+const deleteNotebook = (id) => run('DELETE FROM notebooks WHERE id = ?', [id]);
 
-// Get all users (for admin)
-const getAllUsers = () => {
-  const stmt = db.prepare('SELECT * FROM users');
-  return stmt.all();
-};
-
-// Get all notes (for admin)
-const getAllNotes = () => {
-  const stmt = db.prepare('SELECT * FROM notes');
-  return stmt.all();
-};
+const getAllUsers = () => queryAll('SELECT * FROM users');
+const getAllNotes = () => queryAll('SELECT * FROM notes');
 
 module.exports = {
   db,
