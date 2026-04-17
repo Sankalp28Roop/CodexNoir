@@ -18,13 +18,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const { connectDB } = require('./config/db');
+const connectDB = require('./config/db');
 
-let dbReady = connectDB();
-
-app.use(async (req, res, next) => {
-  await dbReady;
-  next();
+connectDB().then(() => {
+  console.log('Database connected');
+}).catch(err => {
+  console.error('Database connection failed:', err);
 });
 
 app.use('/api/auth', authRoutes);

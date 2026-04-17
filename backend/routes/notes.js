@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const jwt = require('jsonwebtoken');
+const Note = require('../models/Note');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'notesappsecretkey';
 
 router.use((req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -9,8 +12,6 @@ router.use((req, res, next) => {
   }
   const token = authHeader.split(' ')[1];
   try {
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'notesappsecretkey';
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.id;
     next();
@@ -19,46 +20,31 @@ router.use((req, res, next) => {
   }
 });
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { search, isTask, isComplete, pinned } = req.query;
     
-    let notes = db.getNotesByUser(req.userId);
+    let query = { userId: req.userId };
     
-    if (pinned === 'true') {
-      notes = notes.filter(n => n.pinned);
-    }
+    if (pinned === 'true') query.pinned = true;
+    if (isTask === 'true') query.isTask = true;
+    if (isComplete === 'false') query.isTask = true;
+    query.isComplete = isComplete === 'true' ? true : (isComplete === 'false' ? false : undefined);
     
-    if (isTask === 'true') {
-      notes = notes.filter(n => n.isTask);
-    }
-    
-    if (isComplete === 'false') {
-      notes = notes.filter(n => n.isTask && !n.isComplete);
-    }
+    let notes = await Note.find(query).sort({ pinned: -1, updatedAt: -1 });
     
     if (search) {
       const searchLower = search.toLowerCase();
       notes = notes.filter(n => 
         (n.title && n.title.toLowerCase().includes(searchLower)) ||
         (n.content && n.content.toLowerCase().includes(searchLower)) ||
-        (n.tags && n.tags.toLowerCase().includes(searchLower))
+        (n.tags && n.tags.some(t => t.toLowerCase().includes(searchLower)))
       );
     }
     
-    notes = notes.map(n => ({
-      ...n,
-      tags: JSON.parse(n.tags || '[]'),
-      sharedWith: JSON.parse(n.sharedWith || '[]'),
-      comments: JSON.parse(n.comments || '[]'),
-      history: JSON.parse(n.history || '[]'),
-      metadata: JSON.parse(n.metadata || '{}')
-    }));
-    
-    notes.sort((a, b) => {
-      if (a.pinned !== b.pinned) return b.pinned - a.pinned;
-      return new Date(b.updatedAt) - new Date(a.updatedAt);
-    });
+    if (isComplete === 'false') {
+      notes = notes.filter(n => n.isTask && !n.isComplete);
+    }
     
     res.json(notes);
   } catch (error) {
@@ -67,53 +53,47 @@ router.get('/', (req, res) => {
   }
 });
 
-router.get('/tasks', (req, res) => {
+router.get('/tasks', async (req, res) => {
   try {
-    const notes = db.getNotesByUser(req.userId)
-      .filter(n => n.isTask && !n.isComplete)
-      .map(n => ({
-        ...n,
-        tags: JSON.parse(n.tags || '[]'),
-        sharedWith: JSON.parse(n.sharedWith || '[]'),
-        comments: JSON.parse(n.comments || '[]'),
-        history: JSON.parse(n.history || '[]'),
-        metadata: JSON.parse(n.metadata || '{}')
-      }));
+    const notes = await Note.find({ userId: req.userId, isTask: true, isComplete: false })
+      .sort({ updatedAt: -1 });
     res.json(notes);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching tasks' });
   }
 });
 
-router.get('/search', (req, res) => {
+router.get('/search', async (req, res) => {
   try {
     const { q } = req.query;
     if (!q) return res.json([]);
     
-    const notes = db.searchNotes(req.userId, q).map(n => ({
-      ...n,
-      tags: JSON.parse(n.tags || '[]')
-    }));
-    res.json(notes.slice(0, 10));
+    const notes = await Note.find({
+      userId: req.userId,
+      $or: [
+        { title: { $regex: q, $options: 'i' } },
+        { content: { $regex: q, $options: 'i' } }
+      ]
+    }).limit(10);
+    res.json(notes);
   } catch (error) {
     res.status(500).json({ message: 'Error searching notes' });
   }
 });
 
-router.get('/:id/history', (req, res) => {
+router.get('/:id/history', async (req, res) => {
   try {
-    const note = db.getNoteById(req.params.id);
-    if (!note || note.userId !== req.userId) {
+    const note = await Note.findById(req.params.id);
+    if (!note || note.userId.toString() !== req.userId) {
       return res.status(404).json({ message: 'Note not found' });
     }
-    const history = JSON.parse(note.history || '[]');
-    res.json(history);
+    res.json(note.history || []);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching history' });
   }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { title, content, intent, pinned, color, reminder, isTask, tags, notebookId } = req.body;
 
@@ -121,7 +101,8 @@ router.post('/', (req, res) => {
       return res.status(400).json({ message: 'Title is required' });
     }
 
-    const note = db.createNote(req.userId, {
+    const note = await Note.create({
+      userId: req.userId,
       title,
       content: content || '',
       intent: intent || 'note',
@@ -133,37 +114,30 @@ router.post('/', (req, res) => {
       notebookId: notebookId || null
     });
 
-    res.status(201).json({
-      ...note,
-      tags: JSON.parse(note.tags || '[]'),
-      sharedWith: JSON.parse(note.sharedWith || '[]'),
-      comments: JSON.parse(note.comments || '[]'),
-      history: JSON.parse(note.history || '[]'),
-      metadata: JSON.parse(note.metadata || '{}')
-    });
+    res.status(201).json(note);
   } catch (error) {
     console.error('Create Note Error:', error);
     res.status(500).json({ message: 'Error creating note' });
   }
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
-    const note = db.getNoteById(req.params.id);
+    const note = await Note.findById(req.params.id);
     
-    if (!note || note.userId !== req.userId) {
+    if (!note || note.userId.toString() !== req.userId) {
       return res.status(404).json({ message: 'Note not found' });
     }
 
     const { title, content, intent, pinned, bookmarked, color, reminder, isTask, isComplete, tags, notebookId, publicLink, isPrivate, sharedWith, comments } = req.body;
     
-    let history = JSON.parse(note.history || '[]');
+    let history = note.history || [];
     if (content !== undefined && content !== note.content) {
       history.push({ content: note.content, savedAt: new Date() });
       if (history.length > 10) history = history.slice(-10);
     }
     
-    const updates = {};
+    const updates = { history };
     if (title !== undefined) updates.title = title;
     if (content !== undefined) updates.content = content;
     if (intent !== undefined) updates.intent = intent;
@@ -179,56 +153,42 @@ router.put('/:id', (req, res) => {
     if (isPrivate !== undefined) updates.isPrivate = isPrivate;
     if (sharedWith !== undefined) updates.sharedWith = sharedWith;
     if (comments !== undefined) updates.comments = comments;
-    updates.history = history;
 
-    const updatedNote = db.updateNote(req.params.id, updates);
+    const updatedNote = await Note.findByIdAndUpdate(req.params.id, updates, { new: true });
 
-    res.json({
-      ...updatedNote,
-      tags: JSON.parse(updatedNote.tags || '[]'),
-      sharedWith: JSON.parse(updatedNote.sharedWith || '[]'),
-      comments: JSON.parse(updatedNote.comments || '[]'),
-      history: JSON.parse(updatedNote.history || '[]'),
-      metadata: JSON.parse(updatedNote.metadata || '{}')
-    });
+    res.json(updatedNote);
   } catch (error) {
     console.error('Update Note Error:', error);
     res.status(500).json({ message: 'Error updating note' });
   }
 });
 
-router.patch('/:id/complete', (req, res) => {
+router.patch('/:id/complete', async (req, res) => {
   try {
-    const note = db.getNoteById(req.params.id);
+    const note = await Note.findById(req.params.id);
     
-    if (!note || note.userId !== req.userId) {
+    if (!note || note.userId.toString() !== req.userId) {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    const updatedNote = db.updateNote(req.params.id, { isComplete: !note.isComplete });
+    note.isComplete = !note.isComplete;
+    await note.save();
 
-    res.json({
-      ...updatedNote,
-      tags: JSON.parse(updatedNote.tags || '[]'),
-      sharedWith: JSON.parse(updatedNote.sharedWith || '[]'),
-      comments: JSON.parse(updatedNote.comments || '[]'),
-      history: JSON.parse(updatedNote.history || '[]'),
-      metadata: JSON.parse(updatedNote.metadata || '{}')
-    });
+    res.json(note);
   } catch (error) {
     res.status(500).json({ message: 'Error updating note' });
   }
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const note = db.getNoteById(req.params.id);
+    const note = await Note.findById(req.params.id);
     
-    if (!note || note.userId !== req.userId) {
+    if (!note || note.userId.toString() !== req.userId) {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    db.deleteNote(req.params.id);
+    await Note.findByIdAndDelete(req.params.id);
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
     console.error('Delete Note Error:', error);
@@ -236,10 +196,9 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-router.get('/public/:slug', (req, res) => {
+router.get('/public/:slug', async (req, res) => {
   try {
-    const notes = db.getAllNotes();
-    const note = notes.find(n => n.publicLink === req.params.slug);
+    const note = await Note.findOne({ publicLink: req.params.slug });
     
     if (!note) {
       return res.status(404).json({ message: 'Note not found' });
@@ -255,17 +214,17 @@ router.get('/public/:slug', (req, res) => {
   }
 });
 
-router.post('/:id/public', (req, res) => {
+router.post('/:id/public', async (req, res) => {
   try {
-    const note = db.getNoteById(req.params.id);
+    const note = await Note.findById(req.params.id);
     
-    if (!note || note.userId !== req.userId) {
+    if (!note || note.userId.toString() !== req.userId) {
       return res.status(404).json({ message: 'Note not found' });
     }
     
     if (!note.publicLink) {
-      const publicLink = Math.random().toString(36).substring(2, 10);
-      db.updateNote(req.params.id, { publicLink });
+      note.publicLink = Math.random().toString(36).substring(2, 10);
+      await note.save();
     }
     
     res.json({ slug: note.publicLink });

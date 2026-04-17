@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const db = require('../config/db');
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'notesappsecretkey';
 
-router.post('/signup', (req, res) => {
+router.post('/signup', async (req, res) => {
   try {
     const { name, email, password, useCase } = req.body;
 
@@ -14,26 +13,26 @@ router.post('/signup', (req, res) => {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
-    const existingUser = db.findUserByEmail(email);
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    const user = db.createUser(name, email, password, useCase);
+    const user = await User.create({ name, email, password, useCase: useCase || 'personal' });
 
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
       user: {
-        id: user.id,
+        id: user._id,
         name: user.name,
         email: user.email,
         useCase: user.useCase,
         xp: user.xp || 0,
         streak: user.streak || 0,
-        badges: JSON.parse(user.badges || '[]'),
+        badges: user.badges || [],
         createdAt: user.createdAt
       }
     });
@@ -43,7 +42,7 @@ router.post('/signup', (req, res) => {
   }
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -51,31 +50,31 @@ router.post('/login', (req, res) => {
       return res.status(400).json({ message: 'Please provide email and password' });
     }
 
-    const user = db.findUserByEmail(email);
+    const user = await User.findOne({ email }).select('+password');
     
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const isMatch = bcrypt.compareSync(password, user.password);
+    const isMatch = await user.matchPassword(password);
     
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '30d' });
 
     res.json({
       message: 'Login successful',
       token,
       user: {
-        id: user.id,
+        id: user._id,
         name: user.name,
         email: user.email,
         useCase: user.useCase,
         xp: user.xp || 0,
         streak: user.streak || 0,
-        badges: JSON.parse(user.badges || '[]'),
+        badges: user.badges || [],
         createdAt: user.createdAt
       }
     });
@@ -85,7 +84,7 @@ router.post('/login', (req, res) => {
   }
 });
 
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -94,7 +93,7 @@ router.get('/me', (req, res) => {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = db.findUserById(decoded.id);
+    const user = await User.findById(decoded.id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -102,13 +101,13 @@ router.get('/me', (req, res) => {
 
     res.json({
       user: {
-        id: user.id,
+        id: user._id,
         name: user.name,
         email: user.email,
         useCase: user.useCase,
         xp: user.xp || 0,
         streak: user.streak || 0,
-        badges: JSON.parse(user.badges || '[]'),
+        badges: user.badges || [],
         createdAt: user.createdAt
       }
     });
