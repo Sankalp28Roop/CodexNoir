@@ -1,0 +1,12 @@
+{
+  "appId": "com.codexnoir.app",
+  "appName": "CodexNoir",
+  "webDir": "frontend",
+  "bundledWebRuntime": false,
+  "npmClient": "npm",
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "cordova": {}
+}

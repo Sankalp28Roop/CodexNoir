@@ -1,14 +1,15 @@
-const CACHE_NAME = 'codexnoir-v1';
+const CACHE_NAME = 'codexnoir-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/script.js',
   '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
 ];
 
-// Install event - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -18,7 +19,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -32,12 +32,9 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
-  // Skip API calls - go to network
   if (event.request.url.includes('/api/')) {
     event.respondWith(
       fetch(event.request)
@@ -51,7 +48,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // For static assets, try cache first
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -59,12 +55,10 @@ self.addEventListener('fetch', (event) => {
       }
       
       return fetch(event.request).then((response) => {
-        // Don't cache non-successful responses
         if (!response || response.status !== 200) {
           return response;
         }
         
-        // Cache the fetched response
         const responseClone = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseClone);
@@ -76,7 +70,6 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notification event
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   
@@ -85,7 +78,10 @@ self.addEventListener('push', (event) => {
     body: data.body || 'New notification',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    data: data.url || '/'
+    data: data.url || '/',
+    vibrate: [100, 50, 100],
+    tag: 'codexnoir-notification',
+    renotify: true
   };
   
   event.waitUntil(
@@ -93,10 +89,15 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Notification click event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow(event.notification.data)
+    clients.openWindow(event.notification.data || '/')
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

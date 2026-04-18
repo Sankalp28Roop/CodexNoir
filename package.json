@@ -1,0 +1,32 @@
+{
+  "name": "codexnoir",
+  "version": "2.0.0",
+  "description": "CodexNoir - AI-Powered Notes App",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cd backend && npm start",
+    "android:build": "npx cap sync android && cd android && ./gradlew assembleDebug",
+    "android:open": "npx cap open android",
+    "android:live": "npx cap sync && npx cap run android",
+    "cap:sync": "npx cap sync",
+    "cap:copy": "npx cap copy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sankalp28Roop/CodexNoir.git"
+  },
+  "keywords": ["notes", "ai", "productivity", "pwa"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1"
+  },
+  "dependencies": {
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/local-notifications": "^8.0.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.3"
+  }
+}
