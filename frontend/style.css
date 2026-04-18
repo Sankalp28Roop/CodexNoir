@@ -3339,3 +3339,27 @@ body.focus-mode #focusModeBtn {
   margin-left: -8px;
   border: 2px solid var(--bg-primary);
 }
+
+.wiki-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.wiki-link:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.wiki-link.broken {
+  color: var(--text-muted);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px dashed var(--color-error);
+}
+
+.markdown-preview {
+  font-family: var(--font-mono);
+  line-height: 1.6;
+}

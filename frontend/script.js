@@ -1,5 +1,28 @@
 const API_URL = '/api';
 
+function renderMarkdown(text) {
+  if (!text) return '';
+  let html = text
+    .replace(/\[\[(.+?)\]\]/g, (match, title) => {
+      const linkedNote = notes.find(n => n.title.toLowerCase() === title.toLowerCase());
+      const linkClass = linkedNote ? 'wiki-link' : 'wiki-link broken';
+      return `<a href="#" class="${linkClass}" data-note="${title}">${title}</a>`;
+    })
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^\* (.+)$/gm, '<li>$1</li>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/\n/g, '<br>');
+  return html;
+}
+
+let isPreviewMode = false;
+
 let currentUser = null;
 let notes = [];
 let activeNote = null;
@@ -1283,8 +1306,12 @@ document.getElementById('closeGraph').addEventListener('click', () => {
 });
 
 function playNotificationSound() {
-  const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJOqsIeEeWJw无为');
-  audio.play().catch(() => {});
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  osc.connect(ctx.destination);
+  osc.frequency.value = 880;
+  osc.start();
+  setTimeout(() => osc.stop(), 100);
 }
 
 // Stats
@@ -1507,6 +1534,27 @@ function setupEventListeners() {
   document.getElementById('exportNote').addEventListener('click', showExportModal);
   document.getElementById('attachFile').addEventListener('click', () => document.getElementById('imageUpload').click());
   document.getElementById('addTag').addEventListener('click', showTagModal);
+  
+  document.getElementById('previewMode').addEventListener('click', () => {
+    isPreviewMode = !isPreviewMode;
+    const contentEl = document.getElementById('noteContent');
+    const previewEl = document.getElementById('markdownPreview');
+    if (isPreviewMode) {
+      if (!previewEl) {
+        const div = document.createElement('div');
+        div.id = 'markdownPreview';
+        div.className = 'markdown-preview';
+        div.style.cssText = 'padding: 16px; overflow-y: auto; height: 100%;';
+        contentEl.parentNode.appendChild(div);
+      }
+      document.getElementById('markdownPreview').innerHTML = renderMarkdown(contentEl.value);
+      contentEl.classList.add('hidden');
+      document.getElementById('markdownPreview').classList.remove('hidden');
+    } else {
+      contentEl.classList.remove('hidden');
+      if (previewEl) previewEl.classList.add('hidden');
+    }
+  });
   document.getElementById('setReminder').addEventListener('click', showReminderModal);
   document.getElementById('bookmarkNote').addEventListener('click', toggleBookmark);
   
