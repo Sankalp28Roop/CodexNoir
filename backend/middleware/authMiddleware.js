@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
-const db = require('../config/db');
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'notesappsecretkey';
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -14,7 +14,7 @@ module.exports = (req, res, next) => {
   
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = db.findUserById(decoded.id);
+    const user = await User.findById(decoded.id);
     
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
