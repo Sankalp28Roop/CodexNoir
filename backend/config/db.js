@@ -6,7 +6,8 @@ const connectDB = async () => {
   if (isConnected) return;
   
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/codexnoir');
+    const mongoURL = process.env.MONGODB_URI || process.env.MONGODB_URL || 'mongodb://localhost:27017/codexnoir';
+    const conn = await mongoose.connect(mongoURL);
     isConnected = true;
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
