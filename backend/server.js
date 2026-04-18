@@ -5,6 +5,8 @@ require('dotenv').config();
 
 const app = express();
 
+console.log('Starting server...');
+
 const frontendPath = path.join(__dirname, '../frontend');
 
 app.use(cors({
@@ -16,23 +18,9 @@ app.use(express.json());
 
 const connectDB = require('./config/db');
 
-let dbReady = false;
-
 connectDB()
-  .then(() => {
-    dbReady = true;
-    console.log('Database connected');
-  })
-  .catch(err => {
-    console.error('DB Error:', err.message);
-  });
-
-app.use((req, res, next) => {
-  if (!dbReady) {
-    console.log('DB not ready, waiting...');
-  }
-  next();
-});
+  .then(() => console.log('DB init done'))
+  .catch(err => console.error('DB init failed:', err.message));
 
 const authRoutes = require('./routes/auth');
 const notesRoutes = require('./routes/notes');
