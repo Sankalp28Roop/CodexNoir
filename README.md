@@ -102,6 +102,7 @@ Deploy on Vercel: https://codexnoir.vercel.app
 - Rate limiting (20 req/15 min on auth)
 - PIN lock option
 - 👑 Admin dashboard
+- 🔒 End-to-End Encryption (client-side)
 
 ---
 
@@ -279,7 +280,8 @@ GEMINI_API_KEY=your-key
 - 📱 Full PWA with offline support
 - 🤖 Android app via Capacitor
 - 🎯 Enhanced keyboard shortcuts
-- 🎤 Voice input support
+- 🎤 Voice input with AI transcription
+- 🔒 End-to-End Encryption (client-side)
 - ⏱️ Focus mode
 
 ---
