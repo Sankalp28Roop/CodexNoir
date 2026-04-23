@@ -903,6 +903,9 @@ function toggleVoiceRecording() {
   recognition.continuous = true;
   recognition.interimResults = true;
   
+  // Store content before voice recording starts
+  const contentBeforeVoice = elements.noteContent.value;
+  
   recognition.onstart = () => {
     isListening = true;
     showVoiceRecordingUI(true);
@@ -928,14 +931,54 @@ function toggleVoiceRecording() {
     stopVoiceRecording();
   };
   
-  recognition.onend = () => {
+  recognition.onend = async () => {
     showVoiceRecordingUI(false);
+    // Get the transcribed text (what was appended during recording)
+    const transcribed = elements.noteContent.value.substring(contentBeforeVoice.length).trim();
+    if (transcribed) {
+      showToast('Transcribing with AI...', 'info');
+      try {
+        const summary = await summarizeWithAI(transcribed);
+        // Replace the transcribed part with the AI summary
+        elements.noteContent.value = contentBeforeVoice + (contentBeforeVoice ? ' ' : '') + summary;
+        handleNoteChange();
+        showToast('Voice note summarized!', 'success');
+      } catch (err) {
+        console.error('AI summarization error:', err);
+        showToast('Failed to summarize voice note', 'error');
+        // Keep the original transcription if AI fails
+      }
+    }
   };
   
   if (!isListening) {
     recognition.start();
   } else {
     stopVoiceRecording();
+  }
+}
+
+// Helper function to summarize text using Gemini AI
+async function summarizeWithAI(text) {
+  try {
+    const response = await fetch(`${API_URL}/ai/summarize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+      },
+      body: JSON.stringify({ content: text })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+    
+    const data = await response.json();
+    return data.summary || text;
+  } catch (error) {
+    console.error('Summarize AI error:', error);
+    throw error;
   }
 }
 
