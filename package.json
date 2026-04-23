@@ -15,7 +15,12 @@
     "type": "git",
     "url": "git+https://github.com/Sankalp28Roop/CodexNoir.git"
   },
-  "keywords": ["notes", "ai", "productivity", "pwa"],
+  "keywords": [
+    "notes",
+    "ai",
+    "productivity",
+    "pwa"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -27,6 +32,8 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
-    "@capacitor/push-notifications": "^8.0.3"
+    "@capacitor/push-notifications": "^8.0.3",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   }
 }

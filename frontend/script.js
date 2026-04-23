@@ -94,6 +94,177 @@ initEncryption().catch(err => {
   console.error('Failed to initialize encryption:', err);
 });
 
+// Initialize Socket.IO for real-time sync
+let socket = null;
+
+function connectSocket() {
+  const token = localStorage.getItem('token');
+  if (!token || !isOnline) return;
+  
+  socket = io(API_URL.replace('/api', ''), {
+    auth: { token },
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000
+  });
+  
+  socket.on('connect', () => {
+    console.log('[Socket] Connected');
+    showSyncStatus('synced');
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('[Socket] Disconnected');
+    showSyncStatus('offline');
+  });
+  
+  socket.on('connect_error', (err) => {
+    console.log('[Socket] Connection error:', err.message);
+    showSyncStatus('offline');
+  });
+  
+  // Listen for note updates from other devices
+  socket.on('note-updated', (updatedNote) => {
+    handleRemoteNoteUpdate(updatedNote);
+  });
+  
+  socket.on('note-deleted', (noteId) => {
+    handleRemoteNoteDeletion(noteId);
+  });
+}
+
+function disconnectSocket() {
+  if (socket) {
+    socket.disconnect();
+  }
+}
+
+// Handle note updates from other devices
+function handleRemoteNoteUpdate(remoteNote) {
+  const localNoteIndex = notes.findIndex(n => n._id === remoteNote._id);
+  
+  if (localNoteIndex !== -1) {
+    // Merge strategy: prefer remote version if it's newer
+    const localNote = notes[localNoteIndex];
+    const remoteTimestamp = new Date(remoteNote.updatedAt).getTime();
+    const localTimestamp = new Date(localNote.updatedAt).getTime();
+    
+    if (remoteTimestamp > localTimestamp) {
+      notes[localNoteIndex] = decryptNoteContent(remoteNote);
+      renderNotesList();
+      if (activeNote && activeNote._id === remoteNote._id) {
+        activeNote = decryptNoteContent(remoteNote);
+        renderNoteContent();
+      }
+    }
+  } else {
+    // New note from remote device
+    const decryptedNote = decryptNoteContent(remoteNote);
+    notes.push(decryptedNote);
+    renderNotesList();
+  }
+}
+
+// Handle note deletion from other devices
+function handleRemoteNoteDeletion(noteId) {
+  const noteIndex = notes.findIndex(n => n._id === noteId);
+  if (noteIndex !== -1) {
+    notes.splice(noteIndex, 1);
+    renderNotesList();
+    if (activeNote && activeNote._id === noteId) {
+      activeNote = null;
+      renderNoteContent();
+    }
+  }
+}
+
+// Broadcast note updates to other devices
+function broadcastNoteUpdate(note) {
+  if (socket && socket.connected) {
+    socket.emit('note-updated', decryptNoteContent(note));
+  }
+}
+
+// Broadcast note deletions to other devices
+function broadcastNoteDeletion(noteId) {
+  if (socket && socket.connected) {
+    socket.emit('note-deleted', noteId);
+  }
+}
+
+// Update saveNote function to broadcast changes
+async function saveNote() {
+  if (!activeNote) return;
+  const noteData = {
+    title: activeNote.title || 'Untitled',
+    content: activeNote.content,
+    color: selectedColor,
+    pinned: activeNote.pinned,
+    isTask: activeNote.isTask || false,
+    intent: activeNote.intent
+  };
+
+  try {
+    const token = localStorage.getItem('token');
+    if (activeNote._id.startsWith('temp_')) {
+      const res = await fetch(`${API_URL}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(noteData)
+      });
+      const created = await res.json();
+      const decryptedCreated = await decryptNoteContent(created);
+      const index = notes.findIndex(n => n._id === activeNote._id);
+      if (index !== -1) notes[index] = decryptedCreated;
+      activeNote = decryptedCreated;
+    } else {
+      const res = await fetch(`${API_URL}/notes/${activeNote._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(noteData)
+      });
+      const updated = await res.json();
+      const decryptedUpdated = await decryptNoteContent(updated);
+      const index = notes.findIndex(n => n._id === activeNote._id);
+      if (index !== -1) notes[index] = decryptedUpdated;
+      activeNote = decryptedUpdated;
+    }
+    saveNotesToStorage();
+    renderNotesList();
+    showSyncStatus('synced');
+    // Broadcast changes to other devices
+    broadcastNoteUpdate(activeNote);
+  } catch (error) {
+    saveNotesToStorage();
+    showSyncStatus('offline');
+  }
+}
+
+// Update deleteNote function to broadcast
+async function deleteNote(id) {
+  try {
+    const note = await getNoteById(id);
+    if (!note) return;
+    
+    await fetch(`${API_URL}/notes/${id}`, { method: 'DELETE' });
+    const index = notes.findIndex(n => n._id === id);
+    if (index !== -1) {
+      const deletedNote = notes.splice(index, 1)[0];
+      saveNotesToStorage();
+      renderNotesList();
+      if (activeNote && activeNote._id === id) {
+        activeNote = null;
+        renderNoteContent();
+      }
+      broadcastNoteDeletion(id);
+    }
+  } catch (error) {
+    console.error('Delete note error:', error);
+    showSyncStatus('offline');
+  }
+}
+
 // We'll also need a function to encrypt/decrypt note objects
 async function encryptNoteContent(note) {
   if (!encryptionKey) return note;
@@ -739,7 +910,31 @@ document.getElementById('clearFilters').addEventListener('click', () => clearFil
 
 document.getElementById('closeShortcuts').addEventListener('click', () => document.getElementById('shortcutsModal').classList.add('hidden'));
 
-document.addEventListener('keydown', handleKeyboard);
+// Note Preview & Markdown
+// No extra initialization needed, already set up
+
+// Real-time sync status indicator
+function updateSyncStatusVisual() {
+  const statusDot = document.querySelector('.sync-dot');
+  if (statusDot) {
+    if (navigator.onLine) {
+      statusDot.classList.add('online');
+      statusDot.classList.remove('offline');
+    } else {
+      statusDot.classList.add('offline');
+      statusDot.classList.remove('online');
+    }
+  }
+}
+
+// Check network status on load
+window.addEventListener('load', function() {
+  updateSyncStatusVisual();
+});
+
+// Network event listeners
+window.addEventListener('online', updateSyncStatusVisual);
+window.addEventListener('offline', updateSyncStatusVisual);
 
 // Load notifications
 notifications = JSON.parse(localStorage.getItem('notifications') || '[]');
@@ -1253,6 +1448,7 @@ function importBackup() {
 
 // Initialize modern features
 document.getElementById('focusModeBtn').addEventListener('click', toggleFocusMode);
+document.getElementById('quickCaptureBtn').addEventListener('click', openQuickCapture);
 
 // Note Preview & Markdown
 let currentEditorTab = 'edit';
@@ -1273,17 +1469,35 @@ function switchEditorTab(tab) {
   }
 }
 
+function markdownToHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^\* (.+)$/gm, '<li>$1</li>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/\n/g, '<br>');
+}
+
 function renderNotePreview() {
   const content = elements.noteContent.value;
   const preview = document.getElementById('notePreview');
-  preview.innerHTML = content
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*)\*/g, '<em>$1</em>')
-    .replace(/^- (.*$)/gm, '<li>$1</li>')
-    .replace(/\n/g, '<br>');
+  preview.innerHTML = markdownToHtml(content);
+  // Render LaTeX math expressions
+  renderMathInElement(preview, {
+    delimiters: [
+      {left: '$$', right: '$$', display: true},
+      {left: '$', right: '$', display: false},
+      {left: '\\(', right: '\\)', display: false},
+      {left: '\\[', right: '\\]', display: true}
+    ],
+    throwOnError: false
+  });
 }
 
 function renderMarkdown() {
