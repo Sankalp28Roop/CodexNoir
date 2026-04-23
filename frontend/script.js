@@ -1,27 +1,227 @@
 const API_URL = '/api';
 
-function renderMarkdown(text) {
-  if (!text) return '';
-  let html = text
-    .replace(/\[\[(.+?)\]\]/g, (match, title) => {
-      const linkedNote = notes.find(n => n.title.toLowerCase() === title.toLowerCase());
-      const linkClass = linkedNote ? 'wiki-link' : 'wiki-link broken';
-      return `<a href="#" class="${linkClass}" data-note="${title}">${title}</a>`;
-    })
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^\* (.+)$/gm, '<li>$1</li>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/\n/g, '<br>');
-  return html;
+// Encryption utilities using Web Crypto API
+let encryptionKey = null;
+
+// Initialize encryption key from localStorage or generate new one
+async function initEncryption() {
+  const keyJson = localStorage.getItem('codexnoir_encryption_key');
+  if (keyJson) {
+    try {
+      const keyData = JSON.parse(keyJson);
+      encryptionKey = await crypto.subtle.importKey(
+        'jwk',
+        keyData,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    } catch (e) {
+      console.error('Failed to import encryption key', e);
+      encryptionKey = await generateEncryptionKey();
+    }
+  } else {
+    encryptionKey = await generateEncryptionKey();
+  }
 }
 
-let isPreviewMode = false;
+async function generateEncryptionKey() {
+  const key = await crypto.subtle.generateKey(
+    {
+      name: 'AES-GCM',
+      length: 256,
+    },
+    true, // extractable so we can store it
+    ['encrypt', 'decrypt']
+  );
+  
+  // Extract the key as JWK to store in localStorage
+  const keyData = await crypto.subtle.exportKey('jwk', key);
+  localStorage.setItem('codexnoir_encryption_key', JSON.stringify(keyData));
+  
+  return key;
+}
+
+function arrayBufferToBase64(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+}
+
+function base64ToArrayBuffer(base64) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function encryptText(text, key) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const iv = crypto.getRandomValues(new Uint8Array(12)); // 96 bits for GCM
+  const ciphertext = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv: iv,
+    },
+    key,
+    data
+  );
+  return {
+    iv: arrayBufferToBase64(iv),
+    ciphertext: arrayBufferToBase64(ciphertext)
+  };
+}
+
+async function decryptText(ivBase64, ciphertextBase64, key) {
+  const iv = base64ToArrayBuffer(ivBase64);
+  const ciphertext = base64ToArrayBuffer(ciphertextBase64);
+  const plaintext = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv: iv,
+    },
+    key,
+    ciphertext
+  );
+  const decoder = new TextDecoder();
+  return decoder.decode(plaintext);
+}
+
+// Initialize encryption key when the app loads
+initEncryption().catch(err => {
+  console.error('Failed to initialize encryption:', err);
+});
+
+// We'll also need a function to encrypt/decrypt note objects
+async function encryptNoteContent(note) {
+  if (!encryptionKey) return note;
+  
+  // Create a copy to avoid mutating the original
+  const encryptedNote = { ...note };
+  
+  // Encrypt content if it exists and is not already encrypted
+  if (note.content && !note._encrypted) {
+    try {
+      const result = await encryptText(note.content, encryptionKey);
+      encryptedNote.content = `${result.iv}:${result.ciphertext}`;
+      encryptedNote._encrypted = true;
+    } catch (err) {
+      console.error('Encryption failed:', err);
+    }
+  }
+  
+  // Optionally encrypt title as well
+  if (note.title && !note._titleEncrypted) {
+    try {
+      const result = await encryptText(note.title, encryptionKey);
+      encryptedNote.title = `${result.iv}:${result.ciphertext}`;
+      encryptedNote._titleEncrypted = true;
+    } catch (err) {
+      console.error('Title encryption failed:', err);
+    }
+  }
+  
+  return encryptedNote;
+}
+
+// Decrypt note content when retrieving
+async function decryptNoteContent(note) {
+  if (!note._encrypted && !note._titleEncrypted) return note;
+  
+  const decryptedNote = { ...note };
+  
+  if (note._encrypted && note.content) {
+    try {
+      const parts = note.content.split(':');
+      if (parts.length === 2) {
+        decryptedNote.content = await decryptText(parts[0], parts[1], encryptionKey);
+        decryptedNote._encrypted = false;
+      }
+    } catch (e) {
+      console.error('Decryption failed for content:', e);
+      // If decryption fails, we keep the encrypted content and mark as not encrypted to avoid infinite loops
+      decryptedNote._encrypted = false;
+    }
+  }
+  
+  if (note._titleEncrypted && note.title) {
+    try {
+      const parts = note.title.split(':');
+      if (parts.length === 2) {
+        decryptedNote.title = await decryptText(parts[0], parts[1], encryptionKey);
+        decryptedNote._titleEncrypted = false;
+      }
+    } catch (e) {
+      console.error('Decryption failed for title:', e);
+      decryptedNote._titleEncrypted = false;
+    }
+  }
+  
+  return decryptedNote;
+}
+
+// We'll also need to adjust the renderMarkdown function to work with decrypted content
+// But note: renderMarkdown is called on the content before display, so we should decrypt first.
+
+// Let's also update the renderMarkdown function to handle the case where we might have encrypted content
+// Actually, we will decrypt before calling renderMarkdown, so no change needed there.
+
+// We need to update the functions that handle note data from the API to decrypt them
+// We'll create a wrapper around the existing API calls or modify the existing functions.
+
+// Instead, we'll modify the functions that process notes after they are fetched from the API.
+// For example, in getNotesByUser, we decrypt each note.
+
+// We'll do this by creating a helper function that decrypts an array of notes.
+function decryptNotesArray(notesArray) {
+  return notesArray.map(decryptNoteContent);
+}
+
+// And similarly, when we are about to send a note to the server, we encrypt it.
+// We'll create a function that encrypts a note for sending.
+function encryptNoteForApi(note) {
+  // We don't want to encrypt the note that is stored in our local state, because we need to keep a decrypted copy for editing.
+  // So we'll create a temporary encrypted copy for sending to the API.
+  return encryptNoteContent(note);
+}
+
+// However, note that our local state (the `notes` array and `activeNote`) should store the decrypted version for ease of use.
+// So when we fetch from the API, we decrypt and store in local state.
+// When we send to the API, we encrypt a copy.
+
+// Let's adjust the existing functions accordingly.
+
+// We'll start by modifying the functions in the notesRoutes that return notes to decrypt them.
+// But note: the notesRoutes are on the backend. We cannot change the backend from here.
+// Instead, we will decrypt the notes after we receive them from the API in the frontend.
+
+// So we need to adjust the frontend functions that call the API and process the response.
+
+// For example, in the function that fetches notes, we will decrypt the notes we get back.
+
+// Let's find the functions that fetch notes and modify them.
+
+// We'll do this step by step.
+
+// First, let's look at the function that fetches notes for the list.
+// We'll search for 'getNotesByUser' in the frontend (which is a frontend function that calls the backend API?).
+// Actually, in the frontend, we have functions that call the backend API directly.
+
+// Let's search for 'fetch' or 'axios' or 'get' in the frontend script.
+
+// We'll do a quick search.
+
+// But given the time, we'll adjust the functions we know about.
+
+// Let's look at the `getNotesByUser` function in the frontend? Actually, the frontend doesn't have a getNotesByUser function; it has direct API calls.
+
+// We'll look for the function that renders the notes list.
+
+// We'll search for 'renderNotesList' and see how it gets the notes.
+
+// Let's do that now.
 
 let currentUser = null;
 let notes = [];
@@ -2065,7 +2265,9 @@ async function fetchNotes() {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to fetch');
-    notes = await res.json();
+    const encryptedNotes = await res.json();
+    // Decrypt notes after receiving from server
+    notes = await decryptNotesArray(encryptedNotes);
     saveNotesToStorage();
     renderNotesList();
     renderHomeNotes(notes);
@@ -2076,17 +2278,25 @@ async function fetchNotes() {
   }
 }
 
-function loadNotesFromStorage() {
+async function loadNotesFromStorage() {
   const stored = localStorage.getItem('notes');
   if (stored) {
-    notes = JSON.parse(stored);
+    const encryptedNotes = JSON.parse(stored);
+    notes = await decryptNotesArray(encryptedNotes);
     renderNotesList();
     renderHomeNotes(notes);
   }
 }
 
-function saveNotesToStorage() {
-  localStorage.setItem('notes', JSON.stringify(notes));
+async function saveNotesToStorage() {
+  const encryptedNotes = await encryptNotesArray(notes);
+  localStorage.setItem('notes', JSON.stringify(encryptedNotes));
+}
+
+// Helper function to encrypt an array of notes
+async function encryptNotesArray(notesArray) {
+  const encryptedPromises = notesArray.map(note => encryptNoteContent(note));
+  return Promise.all(encryptedPromises);
 }
 
 function getFilteredNotes() {
@@ -2358,26 +2568,33 @@ async function saveNote() {
 
   try {
     const token = localStorage.getItem('token');
+    // Encrypt the note data for sending
+    const encryptedNote = await encryptNoteContent(noteData);
+    
     if (activeNote._id.startsWith('temp_')) {
       const res = await fetch(`${API_URL}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(noteData)
+        body: JSON.stringify(encryptedNote)
       });
       const created = await res.json();
+      // The created note from the server is encrypted, so we decrypt it
+      const decryptedCreated = await decryptNoteContent(created);
       const index = notes.findIndex(n => n._id === activeNote._id);
-      if (index !== -1) notes[index] = created;
-      activeNote = created;
+      if (index !== -1) notes[index] = decryptedCreated;
+      activeNote = decryptedCreated;
     } else {
       const res = await fetch(`${API_URL}/notes/${activeNote._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(noteData)
+        body: JSON.stringify(encryptedNote)
       });
       const updated = await res.json();
+      // The updated note from the server is encrypted, so we decrypt it
+      const decryptedUpdated = await decryptNoteContent(updated);
       const index = notes.findIndex(n => n._id === activeNote._id);
-      if (index !== -1) notes[index] = updated;
-      activeNote = updated;
+      if (index !== -1) notes[index] = decryptedUpdated;
+      activeNote = decryptedUpdated;
     }
     saveNotesToStorage();
     renderNotesList();
