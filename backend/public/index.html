@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodexNoir - Your Second Brain</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <!-- KaTeX for LaTeX math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css" integrity="sha384-vKruj+a13U8yHIkYGg8l1y+ejIc8+XtoQ6qMZqZ+7NFf3KdProd7c5zlo6ygpZj" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js" integrity="sha384-PwRUT/YqbnEjkZO0zZxNqcxACrXe/+ij69+VbRA8rDfEKq8XvZy2mY9mx2m7f9k8N" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw4ddOOaUqDdTcv7UOoO1Qw9JInZ4yq0QytG/TVxv7" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- ONBOARDING SCREENS -->
+    <div id="onboardingScreen" class="screen">
+      <div class="onboarding-content">
+        <div class="logo-section">
+          <div class="app-logo">🧠</div>
+          <h1>CodexNoir</h1>
+          <p class="tagline">Your second brain</p>
+        </div>
+        <div class="use-case-section">
+          <h2>How will you use CodexNoir?</h2>
+          <div class="use-case-grid">
+            <button class="use-case-btn" data-usecase="student">
+              <span class="use-case-icon">📚</span>
+              <span class="use-case-label">Student</span>
+              <span class="use-case-desc">Notes, study, research</span>
+            </button>
+            <button class="use-case-btn" data-usecase="professional">
+              <span class="use-case-icon">💼</span>
+              <span class="use-case-label">Professional</span>
+              <span class="use-case-desc">Work, tasks, goals</span>
+            </button>
+            <button class="use-case-btn" data-usecase="creator">
+              <span class="use-case-icon">✍️</span>
+              <span class="use-case-label">Creator</span>
+              <span class="use-case-desc">Ideas, content, media</span>
+            </button>
+            <button class="use-case-btn" data-usecase="personal">
+              <span class="use-case-icon">💭</span>
+              <span class="use-case-label">Personal</span>
+              <span class="use-case-desc">Journal, thoughts</span>
+            </button>
+          </div>
+        </div>
+        <div class="ai-intro-section">
+          <div class="ai-feature">
+            <span class="ai-icon">✨</span>
+            <div class="ai-text">
+              <strong>AI-Powered</strong>
+              <p>Ask your notes anything</p>
+            </div>
+          </div>
+        </div>
+        <button id="getStartedBtn" class="btn btn-primary btn-large">Get Started</button>
+        <button id="restartOnboarding" class="btn btn-secondary btn-small" style="margin-top: 10px; font-size: 12px;">Reset App</button>
+      </div>
+    </div>
+
+    <!-- HOME SCREEN -->
+    <div id="homeScreen" class="screen hidden">
+      <div class="home-nav">
+        <h1>CodexNoir</h1>
+        <div class="home-nav-actions">
+          <button id="homeNewNote" class="icon-btn" title="Create Note">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button id="homeThemeToggle" class="icon-btn theme-btn" title="Toggle Light/Dark Mode">
+            <span class="theme-icon">🌙</span>
+          </button>
+          <button id="homeProfileBtn" class="profile-btn">
+            <span id="userInitial">D</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="home-header">
+        <div class="home-greeting">
+          <h1 id="greetingText">Good Morning</h1>
+          <p id="greetingSubtext">What's on your mind?</p>
+          <button id="quickReset" style="margin-top:10px; background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px;">↻ Reset App</button>
+        </div>
+      </div>
+      
+      <div class="search-section">
+        <div class="search-bar-large">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="homeSearchInput" placeholder="Ask your notes anything...">
+          <button id="voiceSearchBtn" class="voice-btn-small">🎤</button>
+        </div>
+      </div>
+
+      <div class="home-sections">
+        <div class="section-header">
+          <h3 id="recentTitle">🕐 Recent</h3>
+          <button class="see-all-btn">See All</button>
+        </div>
+        <div class="recent-notes-scroll" id="recentNotesScroll"></div>
+        
+        <div class="section-header">
+          <h3 id="specialTitle">⭐ Pinned</h3>
+        </div>
+        <div class="pinned-notes-scroll" id="pinnedNotesScroll"></div>
+        
+        <div class="section-header">
+          <h3 id="aiTitle">🧠 Quick Actions</h3>
+        </div>
+        <div class="ai-suggestions-scroll" id="aiSuggestionsScroll">
+          <div class="ai-suggestion-card" id="aiSuggestionContinue">
+            <span class="suggestion-icon">📝</span>
+            <div class="suggestion-content">
+              <p id="quickAction1">Continue writing</p>
+              <span class="suggestion-preview" id="continuePreview"></span>
+            </div>
+          </div>
+          <div class="ai-suggestion-card" id="aiSuggestionSummarize">
+            <span class="suggestion-icon">📋</span>
+            <div class="suggestion-content">
+              <p id="quickAction2">Today's notes</p>
+              <span class="suggestion-preview">5 notes</span>
+            </div>
+          </div>
+          <div class="ai-suggestion-card" id="aiSuggestionMemory">
+            <span class="suggestion-icon">⏰</span>
+            <div class="suggestion-content">
+              <p id="quickAction3">This week</p>
+              <span class="suggestion-preview">This week's focus</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN APP (after login) -->
+    <!-- Calendar View -->
+    <div id="calendarPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>📅 Calendar</h3>
+        <button id="closeCalendar" class="icon-btn">&times;</button>
+      </div>
+      <div class="calendar-nav">
+        <button id="prevMonth">&lt;</button>
+        <span id="currentMonth"></span>
+        <button id="nextMonth">&gt;</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+      <div class="calendar-notes" id="calendarNotes"></div>
+    </div>
+    
+    <!-- Time Travel (Version History) -->
+    <div id="timeTravelPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>⏰ Time Travel</h3>
+        <button id="closeTimeTravel" class="icon-btn">&times;</button>
+      </div>
+      <div class="version-list" id="versionList"></div>
+    </div>
+    
+    <!-- Study Mode -->
+    <div id="studyPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>📚 Study Mode</h3>
+        <button id="closeStudy" class="icon-btn">&times;</button>
+      </div>
+      <div class="study-progress">
+        <span id="studyProgress">0/0</span>
+      </div>
+      <div class="flashcard">
+        <div class="flashcard-front" id="flashcardFront"></div>
+        <div class="flashcard-back hidden" id="flashcardBack"></div>
+      </div>
+      <div class="study-controls">
+        <button id="flipCard" class="btn btn-primary">Flip</button>
+        <button id="nextCard" class="btn btn-secondary">Next</button>
+        <button id="generateCards" class="btn btn-secondary">Generate Cards</button>
+      </div>
+    </div>
+    
+    <!-- Daily Brief -->
+    <div id="dailyBriefPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>🌅 Daily Brief</h3>
+        <button id="closeDailyBrief" class="icon-btn">&times;</button>
+      </div>
+      <div class="brief-content" id="briefContent">
+        <p>Loading your brief...</p>
+      </div>
+    </div>
+    
+    <!-- Public Share -->
+    <div id="publicShareModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🌐 Share as Public Link</h3>
+        <p>Anyone with this link can view your note.</p>
+        <input type="text" id="publicLink" class="form-input" readonly>
+        <div class="modal-actions">
+          <button id="generatePublicLink" class="btn btn-primary">Generate Link</button>
+          <button id="copyPublicLink" class="btn btn-secondary">Copy</button>
+          <button id="closePublicShare" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Knowledge Graph -->
+    <div id="graphPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>🕸️ Knowledge Graph</h3>
+        <button id="closeGraph" class="icon-btn">&times;</button>
+      </div>
+      <div class="graph-container" id="graphContainer"></div>
+    </div>
+    
+    <div id="mainApp" class="screen hidden">
+      <nav class="navbar">
+        <div class="nav-brand">
+          <button id="sidebarToggle" class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <button id="backToHomeBtn" class="icon-btn" title="Back to Home">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
+<h1>CodexNoir</h1>
+        </div>
+        
+        <div class="nav-actions">
+          <div id="offlineIndicator" class="offline-indicator">📴 You're offline</div>
+          <span id="syncStatus" class="sync-status hidden">
+            <span class="sync-dot"></span>
+            <span class="sync-text">Syncing...</span>
+          </span>
+          <span id="userStats" class="user-stats hidden">
+            <span class="xp-badge">⭐ <span id="xpCount">0</span></span>
+            <span class="streak-badge">🔥 <span id="streakCount">0</span></span>
+          </span>
+          <button id="insightsBtn" class="icon-btn" title="Insights">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </button>
+          <button id="calendarBtn" class="icon-btn" title="Calendar">📅</button>
+          <button id="graphBtn" class="icon-btn" title="Knowledge Graph">🕸️</button>
+          <button id="studyBtn" class="icon-btn" title="Study Mode">📚</button>
+          <button id="dailyBriefBtn" class="icon-btn" title="Daily Brief">🌅</button>
+          <button id="timeTravelBtn" class="icon-btn" title="Time Travel">⏰</button>
+          <button id="sharePublicBtn" class="icon-btn" title="Share Publicly">🌐</button>
+          <button id="focusModeBtn" class="icon-btn" title="Focus Mode (F)">🎯</button>
+          <button id="voiceNoteBtn" class="icon-btn" title="Voice Note (V)">🎤</button>
+          <button id="integrationsBtn" class="icon-btn" title="Integrations">🔗</button>
+          <button id="themeToggle" class="icon-btn theme-btn" title="Toggle Light/Dark Mode">
+            <span class="theme-icon">🌙</span>
+          </button>
+          <div id="authSection">
+            <button id="loginBtn" class="btn btn-secondary">Login</button>
+            <button id="signupBtn" class="btn btn-primary">Sign Up</button>
+          </div>
+          <div id="userSection" class="hidden">
+            <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            <button id="settingsBtn" class="icon-btn" title="Settings">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main id="mainContent">
+        <div class="auth-container" id="authModal">
+          <div class="auth-box">
+            <span class="close-auth">&times;</span>
+            <h2 id="authTitle">Login</h2>
+            <form id="authForm">
+              <div class="form-group" id="nameGroup">
+                <input type="text" id="nameInput" placeholder="Name" class="form-input">
+              </div>
+              <input type="email" id="emailInput" placeholder="Email" class="form-input" required>
+              <input type="password" id="passwordInput" placeholder="Password" class="form-input" required>
+              <button type="submit" class="btn btn-primary" id="authSubmitBtn">Login</button>
+            </form>
+            <p id="authSwitch">Don't have an account? <a href="#" id="switchAuth">Sign Up</a></p>
+          </div>
+        </div>
+
+        <div class="app-container hidden" id="appContainer">
+          <div class="sidebar-overlay" id="sidebarOverlay"></div>
+          <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+              <button id="newNoteBtn" class="new-note-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                New Note
+              </button>
+              <button id="newNotebookBtn" class="new-notebook-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                New Notebook
+              </button>
+            </div>
+            <div class="intent-selector">
+              <button class="intent-btn active" data-intent="all">All</button>
+              <button class="intent-btn" data-intent="idea">💡</button>
+              <button class="intent-btn" data-intent="study">📚</button>
+              <button class="intent-btn" data-intent="task">✅</button>
+              <button class="intent-btn" data-intent="thought">💭</button>
+              <button class="intent-btn" data-intent="goal">🎯</button>
+              <button id="voiceCaptureBtn" class="intent-btn voice-btn">🎤</button>
+            </div>
+            <div class="search-box">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="searchInput" placeholder="Search notes...">
+            </div>
+            <button id="advancedSearchBtn" class="icon-btn" title="Advanced Search">⚙️</button>
+            
+            <!-- Advanced Search Panel -->
+            <div class="search-filters hidden" id="searchFilters">
+              <div class="filter-group">
+                <label>Sort by:</label>
+                <select id="sortBy">
+                  <option value="date">Date Modified</option>
+                  <option value="created">Date Created</option>
+                  <option value="title">Title A-Z</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Filter by tag:</label>
+                <select id="filterTag">
+                  <option value="">All Tags</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Filter by notebook:</label>
+                <select id="filterNotebook">
+                  <option value="">All Notebooks</option>
+                </select>
+              </div>
+              <button id="applyFilters" class="btn btn-primary">Apply</button>
+              <button id="clearFilters" class="btn btn-secondary">Clear</button>
+            </div>
+            
+            <!-- Notebooks Section -->
+            <div class="notebooks-section" id="notebooksSection">
+              <h4 class="section-title">📚 Notebooks</h4>
+              <div class="notebooks-list" id="notebooksList"></div>
+            </div>
+            
+            <div class="notes-list" id="notesList"></div>
+            <div class="empty-list hidden" id="emptyList">
+              <p>No Notes</p>
+            </div>
+          </aside>
+
+          <div class="note-view" id="noteView">
+<div class="note-editor-panel" id="editorPanel">
+              <div class="editor-tabs">
+                <button class="editor-tab active" data-tab="edit">✏️ Edit</button>
+                <button class="editor-tab" data-tab="preview">👁️ Preview</button>
+                <button class="editor-tab" data-tab="md">📄 Markdown</button>
+              </div>
+              <div class="editor-toolbar">
+                <div class="toolbar-left">
+                  <button id="deleteNote" class="icon-btn" title="Delete (Del)" accesskey="d">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                  <button id="pinNote" class="icon-btn" title="Pin (P)" accesskey="p">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                  </button>
+                  <button id="bookmarkNote" class="icon-btn" title="Bookmark (B)" accesskey="b">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  </button>
+                  <button id="aiMenuBtn" class="icon-btn" title="AI Tools (A)" accesskey="a">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path></svg>
+                  </button>
+                  <button id="toggleTask" class="icon-btn" title="Task Mode (T)" accesskey="t">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  </button>
+                  <button id="completeTask" class="icon-btn hidden" title="Complete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </button>
+                  <button id="exportNote" class="icon-btn" title="Export (E)" accesskey="e">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  </button>
+                  <button id="attachFile" class="icon-btn" title="Attach">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                  </button>
+                  <button id="addTag" class="icon-btn" title="Add Tag">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                  </button>
+                  <button id="setReminder" class="icon-btn" title="Set Reminder">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                  </button>
+                  <button id="shareNote" class="icon-btn" title="Share Note" aria-label="Share note with others">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                  </button>
+                  <button id="togglePrivate" class="icon-btn" title="Private Mode" aria-label="Toggle private mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  </button>
+                  <button id="addComment" class="icon-btn" title="Add Comment" aria-label="Add comment">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  </button>
+                </div>
+                <div class="toolbar-right">
+                  <button class="icon-btn" id="previewMode" title="Toggle Preview (Ctrl+Shift+P)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  </button>
+                  <span class="save-indicator" id="saveStatus">Saved</span>
+                  <span class="note-date" id="noteDate"></span>
+                </div>
+              </div>
+              <div class="format-toolbar">
+                <button class="format-btn" data-format="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                <button class="format-btn" data-format="italic" title="Italic"><em>I</em></button>
+                <button class="format-btn" data-format="heading" title="Heading">H</button>
+                <div class="format-divider"></div>
+                <button class="format-btn" data-format="bullet" title="List">•</button>
+                <button class="format-btn" data-format="checkbox" title="Checklist">☑</button>
+                <div class="format-divider"></div>
+                <button class="format-btn" data-format="code" title="Code">&lt;/&gt;</button>
+                <button class="format-btn" data-format="link" title="Link">🔗</button>
+                <button class="format-btn" data-format="image" title="Image">🖼️</button>
+                <button class="format-btn" data-format="video" title="YouTube Video">▶️</button>
+                <button class="format-btn" data-format="audio" title="Audio Recording">🎤</button>
+                <button class="format-btn" data-format="screen" title="Screen Record">🖥️</button>
+                <button class="format-btn" data-format="embed" title="Embed">📎</button>
+                <button class="format-btn" data-format="table" title="Table">表格</button>
+                <button class="format-btn" data-format="markdown" title="Markdown Preview">📄</button>
+                <button class="format-btn" data-format="preview" title="Toggle Preview">👁️</button>
+                <input type="file" id="imageUpload" accept="image/*" class="hidden">
+                <input type="file" id="audioUpload" accept="audio/*" class="hidden">
+              </div>
+              <input type="text" id="noteTitle" class="note-title-input" placeholder="Title">
+              <textarea id="noteContent" class="note-content-input" placeholder="Start typing... (Use / for commands)"></textarea>
+              <div id="notePreview" class="note-preview hidden" placeholder="Preview..."></div>
+              <div id="markdownView" class="markdown-view hidden">
+                <pre><code></code></pre>
+              </div>
+              <div class="editor-footer">
+                <div class="color-picker">
+                  <button class="color-btn active" data-color="#ffffff" style="background:#fff;border:1px solid #ddd"></button>
+                  <button class="color-btn" data-color="#ffcdd2" style="background:#ffcdd2"></button>
+                  <button class="color-btn" data-color="#c8e6c9" style="background:#c8e6c9"></button>
+                  <button class="color-btn" data-color="#bbdefb" style="background:#bbdefb"></button>
+                  <button class="color-btn" data-color="#fff9c4" style="background:#fff9c4"></button>
+                </div>
+                <div class="save-info">
+                  <span class="save-indicator">Saving...</span>
+                  <span class="char-count">0 characters</span>
+                </div>
+              </div>
+            </div>
+            <div class="no-note-selected" id="noNoteSelected">
+              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <p>Select a note or create a new one</p>
+            </div>
+          </div>
+
+          <aside class="ai-panel hidden" id="aiPanel">
+            <div class="ai-panel-header">
+              <h2>✨ AI Assistant</h2>
+              <button id="closeAiPanel" class="icon-btn">&times;</button>
+            </div>
+            <div class="ai-tools">
+              <button class="ai-tool-btn" data-tool="summarize">📋 Summarize</button>
+              <button class="ai-tool-btn" data-tool="smartTag">🏷️ Smart Tag</button>
+              <button class="ai-tool-btn" data-tool="rewrite">✏️ Rewrite</button>
+              <button class="ai-tool-btn" data-tool="chat">💬 Ask Notes</button>
+              <button class="ai-tool-btn" data-tool="blog">📝 Blog Post</button>
+              <button class="ai-tool-btn" data-tool="tweet">🐦 Tweet</button>
+              <button class="ai-tool-btn" data-tool="linkedin">💼 LinkedIn</button>
+              <button class="ai-tool-btn" data-tool="coach">✍️ Writing Coach</button>
+              <button class="ai-tool-btn" data-tool="flashcards">🎴 Generate Flashcards</button>
+              <button class="ai-tool-btn" data-tool="brief">🌅 Daily Brief</button>
+              <button class="ai-tool-btn" data-tool="related">🔗 Related Notes</button>
+              <button class="ai-tool-btn" data-tool="weekly">📅 Weekly Summary</button>
+            </div>
+            <div class="ai-content" id="aiContent">
+              <div class="ai-welcome"><p>Select a tool to get started</p></div>
+            </div>
+            <div class="ai-input-section hidden" id="aiInputSection">
+              <textarea id="aiInput" placeholder="Enter text..."></textarea>
+              <div class="ai-options hidden" id="aiOptions">
+                <select id="rewriteStyle" class="form-select">
+                  <option value="simplify">Simplify</option>
+                  <option value="expand">Expand</option>
+                  <option value="formal">Formal</option>
+                  <option value="casual">Casual</option>
+                </select>
+              </div>
+              <button id="aiSubmit" class="btn btn-primary">Generate</button>
+            </div>
+            <div class="ai-loading hidden" id="aiLoading">
+              <div class="spinner"></div>
+              <p>Processing...</p>
+            </div>
+          </aside>
+          
+          <div class="copilot-sidebar hidden" id="copilotSidebar">
+            <div class="copilot-header">
+              <h3>🤖 Copilot</h3>
+              <button id="closeCopilot" class="icon-btn">&times;</button>
+            </div>
+            <div class="copilot-messages" id="copilotMessages">
+              <div class="copilot-welcome">
+                <p>I'm here to help! Try:</p>
+                <ul>
+                  <li><button class="copilot-suggestion" data-action="continue">Continue writing...</button></li>
+                  <li><button class="copilot-suggestion" data-action="complete">Complete sentence</button></li>
+                  <li><button class="copilot-suggestion" data-action="suggest">Suggest next</button></li>
+                  <li><button class="copilot-suggestion" data-action="explain">Explain this</button></li>
+                </ul>
+              </div>
+            </div>
+            <div class="copilot-input-area">
+              <input type="text" id="copilotInput" placeholder="Ask for help...">
+              <button id="copilotSend" class="icon-btn">➤</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="offline-container hidden" id="offlineSection">
+          <div class="offline-message">
+            <h2>You're offline</h2>
+            <p>Your notes are saved locally.</p>
+            <button id="createOfflineNote" class="btn btn-primary">Create Note</button>
+          </div>
+        </div>
+
+        <div class="insights-panel hidden" id="insightsPanel">
+          <div class="insights-header">
+            <h2>📊 Your Insights</h2>
+            <button id="closeInsights" class="icon-btn">&times;</button>
+          </div>
+          <div class="insights-content">
+            <div class="insight-card">
+              <h3>Writing Patterns</h3>
+              <p id="insightPatterns">Start writing to see patterns!</p>
+            </div>
+            <div class="insight-card">
+              <h3>Memory Lane</h3>
+              <p id="insightMemory">Looking for notes...</p>
+            </div>
+            <div class="insight-card">
+              <h3>Suggestions</h3>
+              <p id="insightSuggestions">Generating tips...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- CREATE NOTE BOTTOM SHEET -->
+      <div class="bottom-sheet hidden" id="createNoteSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+          <h3>Create New</h3>
+          <div class="create-options">
+            <button class="create-option" data-intent="note">
+              <span class="option-icon">✍️</span>
+              <span class="option-label">Text Note</span>
+            </button>
+            <button class="create-option" data-intent="idea">
+              <span class="option-icon">💡</span>
+              <span class="option-label">Idea</span>
+            </button>
+            <button class="create-option" data-intent="task">
+              <span class="option-icon">✅</span>
+              <span class="option-label">Task</span>
+            </button>
+            <button class="create-option" data-intent="study">
+              <span class="option-icon">📚</span>
+              <span class="option-label">Study</span>
+            </button>
+            <button class="create-option" data-intent="thought">
+              <span class="option-icon">💭</span>
+              <span class="option-label">Journal</span>
+            </button>
+            <button class="create-option" data-intent="goal">
+              <span class="option-icon">🎯</span>
+              <span class="option-label">Goal</span>
+            </button>
+          </div>
+          <button class="sheet-close" id="closeCreateSheet">Cancel</button>
+        </div>
+      </div>
+      
+      <!-- CREATE NOTEBOOK MODAL -->
+      <div id="notebookModal" class="modal-overlay hidden">
+        <div class="modal-box">
+          <h3>Create Notebook</h3>
+          <input type="text" id="notebookName" class="form-input" placeholder="Notebook name (e.g., Semester 1)">
+          <input type="text" id="notebookDesc" class="form-input" placeholder="Description (optional)">
+          <select id="notebookColor" class="form-select">
+            <option value="#6366F1">🟦 Blue</option>
+            <option value="#22C55E">🟩 Green</option>
+            <option value="#F59E0B">🟨 Amber</option>
+            <option value="#EF4444">🟥 Red</option>
+            <option value="#8B5CF6">🟪 Purple</option>
+            <option value="#EC4899">🩷 Pink</option>
+          </select>
+          <div class="modal-actions">
+            <button id="saveNotebook" class="btn btn-primary">Create</button>
+            <button id="closeNotebookModal" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+          <h3>Create New</h3>
+          <div class="create-options">
+            <button class="create-option" data-intent="note">
+              <span class="option-icon">✍️</span>
+              <span class="option-label">Text Note</span>
+            </button>
+            <button class="create-option" data-intent="idea">
+              <span class="option-icon">💡</span>
+              <span class="option-label">Idea</span>
+            </button>
+            <button class="create-option" data-intent="task">
+              <span class="option-icon">✅</span>
+              <span class="option-label">Task</span>
+            </button>
+            <button class="create-option" data-intent="study">
+              <span class="option-icon">📚</span>
+              <span class="option-label">Study</span>
+            </button>
+            <button class="create-option" data-intent="thought">
+              <span class="option-icon">💭</span>
+              <span class="option-label">Journal</span>
+            </button>
+            <button class="create-option" data-intent="goal">
+              <span class="option-icon">🎯</span>
+              <span class="option-label">Goal</span>
+            </button>
+          </div>
+          <button class="sheet-close" id="closeCreateSheet">Cancel</button>
+        </div>
+      </div>
+
+      <!-- FLOATING ACTION BUTTON -->
+      <button id="floatingNewNote" class="floating-btn">+</button>
+
+      <!-- MOBILE BOTTOM NAV -->
+      <nav class="bottom-nav hidden" id="bottomNav">
+        <button class="nav-item active" data-nav="home">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-item" data-nav="search">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">Search</span>
+        </button>
+        <button class="nav-item" data-nav="create">
+          <span class="nav-icon">➕</span>
+          <span class="nav-label">Create</span>
+        </button>
+        <button class="nav-item" data-nav="notes">
+          <span class="nav-icon">📝</span>
+          <span class="nav-label">Notes</span>
+        </button>
+        <button class="nav-item" data-nav="profile">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">Profile</span>
+        </button>
+      </nav>
+
+      <!-- PROFILE PANEL -->
+      <div class="profile-panel hidden" id="profilePanel">
+        <div class="profile-header">
+          <div class="profile-avatar" id="profileAvatar">D</div>
+          <div class="profile-info">
+            <h2 id="profileName">Demo User</h2>
+            <p id="profileEmail">demo@test.com</p>
+          </div>
+          <button id="closeProfile" class="icon-btn">&times;</button>
+        </div>
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="totalNotes">0</span>
+            <span class="stat-label">Notes</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="totalXP">0</span>
+            <span class="stat-label">XP</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="totalStreak">0</span>
+            <span class="stat-label">Streak</span>
+          </div>
+        </div>
+        <div class="profile-options">
+          <button class="profile-option" id="resetAppBtn">
+            <span>🔄</span> Reset App
+          </button>
+          <button class="profile-option" id="adminBtn">
+            <span>👑</span> Admin Panel
+          </button>
+          <button class="profile-option" id="settingsBtn">
+            <span>⚙️</span> Settings
+          </button>
+          <button class="profile-option" id="themesBtn">
+            <span>🎨</span> Themes
+          </button>
+          <button class="profile-option" id="privacyBtn">
+            <span>🔐</span> Privacy
+          </button>
+          <button class="profile-option" id="helpBtn">
+            <span>❓</span> Help
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="modal-actions">
+          <button id="confirmCancel" class="btn btn-secondary">Cancel</button>
+          <button id="confirmOk" class="btn btn-primary">OK</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>Export Note</h3>
+        <div class="export-options">
+          <button class="export-option" data-format="markdown">📝 Markdown</button>
+          <button class="export-option" data-format="pdf">📄 PDF</button>
+          <button class="export-option" data-format="txt">📃 Plain Text</button>
+        </div>
+        <button id="closeExport" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Embed Modal -->
+    <div id="embedModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>📎 Embed Content</h3>
+        <input type="text" id="embedUrl" class="form-input" placeholder="Paste URL (YouTube, Tweet, Gist, Figma)">
+        <div id="embedPreview" style="margin:12px 0;min-height:100px;background:var(--surface);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">Preview will appear here</div>
+        <div class="modal-actions">
+          <button id="insertEmbed" class="btn btn-primary">Insert</button>
+          <button id="closeEmbed" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Recorder -->
+    <div id="audioRecorder" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🎤 Record Audio</h3>
+        <div id="audioRecordUI" style="text-align:center;padding:20px">
+          <button id="startAudioRecord" class="btn btn-primary" style="font-size:2rem;padding:20px;border-radius:50%">🎙️</button>
+          <p id="audioStatus" style="margin-top:12px;color:var(--text-secondary)">Click to start recording</p>
+        </div>
+        <div id="audioPlayback" class="hidden" style="text-align:center;padding:20px">
+          <audio id="audioPlayer" controls style="width:100%"></audio>
+          <div style="margin-top:12px">
+            <button id="saveAudio" class="btn btn-primary">Save to Note</button>
+            <button id="discardAudio" class="btn btn-secondary">Discard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen Recorder -->
+    <div id="screenRecorder" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🖥️ Screen Recording</h3>
+        <div style="text-align:center;padding:20px">
+          <button id="startScreenRecord" class="btn btn-primary" style="font-size:2rem;padding:20px">🎬</button>
+          <p style="margin-top:12px;color:var(--text-secondary)">Click to start screen recording</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Biometric Login Modal -->
+    <div id="biometricModal" class="modal-overlay hidden">
+      <div class="modal-box" style="text-align:center">
+        <h3>🔐 Biometric Login</h3>
+        <div style="font-size:4rem;margin:20px">👆</div>
+        <p>Use fingerprint or face to login</p>
+        <button id="enableBiometric" class="btn btn-primary" style="margin-top:16px">Enable Biometric</button>
+        <button id="loginWithBiometric" class="btn btn-primary" style="margin-top:16px">Login with Biometric</button>
+      </div>
+    </div>
+
+    <!-- 2FA Modal -->
+    <div id="twoFactorModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🔒 Two-Factor Authentication</h3>
+        <p style="color:var(--text-secondary);margin-bottom:16px">Scan this QR code with your authenticator app</p>
+        <div id="qrCode" style="text-align:center;padding:20px;background:white;border-radius:8px">
+          <p>Generating QR code...</p>
+        </div>
+        <input type="text" id="twoFactorCode" class="form-input" placeholder="Enter 6-digit code" maxlength="6" style="margin-top:16px;text-align:center;font-size:1.5rem;letter-spacing:8px">
+        <div class="modal-actions">
+          <button id="verify2FA" class="btn btn-primary">Verify</button>
+          <button id="close2FA" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Integration Settings -->
+    <div id="integrationsModal" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:500px">
+        <h3>🔗 Integrations</h3>
+        <div class="integration-option">
+          <div class="integration-icon">📅</div>
+          <div class="integration-info">
+            <h4>Google Calendar</h4>
+            <p>Sync notes with calendar events</p>
+          </div>
+          <button class="btn btn-secondary" onclick="connectCalendar()">Connect</button>
+        </div>
+        <div class="integration-option">
+          <div class="integration-icon">🐙</div>
+          <div class="integration-info">
+            <h4>GitHub</h4>
+            <p>Link notes to repos & issues</p>
+          </div>
+          <button class="btn btn-secondary" onclick="connectGitHub()">Connect</button>
+        </div>
+        <div class="integration-option">
+          <div class="integration-icon">💬</div>
+          <div class="integration-info">
+            <h4>Slack</h4>
+            <p>Save messages to CodexNoir</p>
+          </div>
+          <button class="btn btn-secondary" onclick="connectSlack()">Connect</button>
+        </div>
+        <button id="closeIntegrations" class="btn btn-secondary" style="width:100%;margin-top:16px">Close</button>
+      </div>
+    </div>
+    
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>📤 Share Note</h3>
+        <input type="text" id="shareEmail" class="form-input" placeholder="Enter email to share with">
+        <select id="shareRole" class="form-select">
+          <option value="view">👁️ View Only</option>
+          <option value="comment">💬 Can Comment</option>
+          <option value="edit">✏️ Can Edit</option>
+        </select>
+        <div class="modal-actions">
+          <button id="sendShare" class="btn btn-primary">Send Invite</button>
+          <button id="closeShare" class="btn btn-secondary">Cancel</button>
+        </div>
+        <div class="quick-share-section" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <p style="font-size:0.875rem;color:var(--text-secondary)">Or share publicly:</p>
+          <button id="createPublicLink" class="btn btn-secondary" style="width:100%;margin-top:8px">🔗 Create Public Link</button>
+          <div id="publicLinkResult" class="hidden" style="margin-top:8px">
+            <input type="text" id="publicLinkInput" class="form-input" readonly style="font-size:0.75rem">
+            <button id="copyPublicLink" class="btn btn-primary" style="margin-top:4px;width:100%">📋 Copy Link</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Comments Panel -->
+    <div id="commentsPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>💬 Comments</h3>
+        <button id="closeComments" class="icon-btn">&times;</button>
+      </div>
+      <div class="comments-list" id="commentsList">
+        <p>No comments yet</p>
+      </div>
+      <div class="comment-input">
+        <input type="text" id="newComment" placeholder="Add a comment...">
+        <button id="postComment" class="btn btn-primary">Post</button>
+      </div>
+    </div>
+    
+    <!-- Notifications Panel -->
+    <div id="notificationsPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>🔔 Notifications</h3>
+        <button id="closeNotifications" class="icon-btn">&times;</button>
+      </div>
+      <div class="notifications-list" id="notificationsList">
+        <p>No notifications</p>
+      </div>
+    </div>
+    
+    <!-- Keyboard Shortcuts Help -->
+    <div id="shortcutsModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="shortcuts-list">
+          <p><strong>Ctrl+B</strong> - Bold</p>
+          <p><strong>Ctrl+I</strong> - Italic</p>
+          <p><strong>Ctrl+S</strong> - Save</p>
+          <p><strong>Del</strong> - Delete note</p>
+          <p><strong>P</strong> - Pin note</p>
+          <p><strong>B</strong> - Bookmark</p>
+          <p><strong>A</strong> - AI tools</p>
+          <p><strong>T</strong> - Toggle task</p>
+          <p><strong>Esc</strong> - Close panel</p>
+        </div>
+        <button id="closeShortcuts" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+    
+    <!-- Tag Modal -->
+    <div id="tagModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>Add Tag</h3>
+        <input type="text" id="tagInput" class="form-input" placeholder="Enter tag name">
+        <div class="tag-list" id="tagList"></div>
+        <div class="modal-actions">
+          <button id="saveTag" class="btn btn-primary">Add</button>
+          <button id="closeTag" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Reminder Modal -->
+    <div id="reminderModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>Set Reminder</h3>
+        <input type="datetime-local" id="reminderInput" class="form-input">
+        <div class="modal-actions">
+          <button id="saveReminder" class="btn btn-primary">Set</button>
+          <button id="closeReminder" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Pomodoro Timer -->
+    <div id="pomodoroPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>⏱️ Focus Timer</h3>
+        <button id="closePomodoro" class="icon-btn">&times;</button>
+      </div>
+      <div class="pomodoro-timer">
+        <span id="timerDisplay">25:00</span>
+      </div>
+      <div class="pomodoro-controls">
+        <button id="startTimer" class="btn btn-primary">Start</button>
+        <button id="pauseTimer" class="btn btn-secondary hidden">Pause</button>
+        <button id="resetTimer" class="btn btn-secondary">Reset</button>
+      </div>
+      <div class="pomodoro-settings">
+        <label>Session: <input type="number" id="sessionLength" value="25" min="1" max="60"> min</label>
+        <label>Break: <input type="number" id="breakLength" value="5" min="1" max="30"> min</label>
+      </div>
+    </div>
+    
+    <!-- Stats Panel -->
+    <div id="statsPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>📊 Your Stats</h3>
+        <button id="closeStats" class="icon-btn">&times;</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-number" id="totalNotesStat">0</span>
+          <span class="stat-label">Total Notes</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="totalWords">0</span>
+          <span class="stat-label">Words Written</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="currentStreak">0</span>
+          <span class="stat-label">Day Streak</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="totalXP">0</span>
+          <span class="stat-label">XP Earned</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="tasksCompleted">0</span>
+          <span class="stat-label">Tasks Done</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="writingGoal">0</span>
+          <span class="stat-label">Daily Goal</span>
+        </div>
+      </div>
+      <div class="badges-section">
+        <h4>🏆 Badges</h4>
+        <div class="badges-grid" id="badgesList"></div>
+      </div>
+    </div>
+    
+    <!-- Command Palette -->
+    <div id="commandPalette" class="command-palette hidden">
+      <div class="palette-overlay"></div>
+      <div class="palette-box">
+        <input type="text" id="commandInput" placeholder="Type a command or search... (Cmd+K)" autocomplete="off">
+        <div class="palette-results" id="paletteResults"></div>
+        <div class="palette-hint">
+          <span>↑↓ Navigate</span>
+          <span>↵ Select</span>
+          <span>Esc Close</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu hidden">
+      <div class="context-item" data-action="pin">📌 Pin Note</div>
+      <div class="context-item" data-action="bookmark">🔖 Bookmark</div>
+      <div class="context-item" data-action="share">📤 Share</div>
+      <div class="context-item" data-action="duplicate">📋 Duplicate</div>
+      <div class="context-divider"></div>
+      <div class="context-item" data-action="export">📤 Export</div>
+      <div class="context-item danger" data-action="delete">🗑️ Delete</div>
+    </div>
+    
+    <!-- Quick Capture Floating -->
+    <button id="quickCaptureBtn" class="quick-capture-btn" title="Quick Capture (Q)">⚡</button>
+    
+    <!-- Focus Mode Toggle -->
+    <button id="focusModeBtn" class="icon-btn" title="Focus Mode (F)">🎯</button>
+    
+    <!-- Lock Screen -->
+    <div id="lockScreen" class="screen hidden">
+      <div class="lock-content">
+        <div class="lock-icon">🔐</div>
+        <h2>Lock App</h2>
+        <input type="password" id="lockPin" class="form-input" placeholder="Enter PIN">
+        <button id="setLock" class="btn btn-primary">Set PIN</button>
+        <button id="unlockApp" class="btn btn-secondary hidden">Unlock</button>
+      </div>
+    </div>
+    
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="panel hidden">
+      <div class="panel-header">
+        <h3>👑 Admin Dashboard</h3>
+        <button id="closeAdmin" class="icon-btn">&times;</button>
+      </div>
+      <div class="admin-stats">
+        <div class="admin-stat">
+          <span class="stat-number" id="adminTotalNotes">0</span>
+          <span class="stat-label">Total Notes</span>
+        </div>
+        <div class="admin-stat">
+          <span class="stat-number" id="adminTotalUsers">0</span>
+          <span class="stat-label">Total Users</span>
+        </div>
+        <div class="admin-stat">
+          <span class="stat-number" id="adminTotalNotebooks">0</span>
+          <span class="stat-label">Notebooks</span>
+        </div>
+      </div>
+      <div class="admin-section">
+        <h4>Recent Activity</h4>
+        <div class="activity-log" id="activityLog">
+          <p>No recent activity</p>
+        </div>
+      </div>
+      <div class="admin-section">
+        <h4>All Notes</h4>
+        <div class="admin-notes-list" id="adminNotesList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="capacitor.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
