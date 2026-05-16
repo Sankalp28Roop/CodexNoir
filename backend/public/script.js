@@ -2189,6 +2189,10 @@ function handleNav(nav) {
   }
 }
 
+function openQuickCapture() {
+  createNewNote('note');
+}
+
 function showCreateSheet() {
   elements.floatingNewNote.classList.add('creating');
   elements.createNoteSheet.classList.remove('hidden');
