@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "public",
+      "src": "public/**",
       "use": "@vercel/static"
     },
     {
@@ -10,14 +10,13 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/index.html"
-    }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/server.js" },
+    { "source": "/style.css", "destination": "/public/style.css" },
+    { "source": "/script.js", "destination": "/public/script.js" },
+    { "source": "/sw.js", "destination": "/public/sw.js" },
+    { "source": "/manifest.json", "destination": "/public/manifest.json" },
+    { "source": "/capacitor.js", "destination": "/public/capacitor.js" },
+    { "source": "/(.*)", "destination": "/public/index.html" }
   ]
 }
